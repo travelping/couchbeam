@@ -1,0 +1,6 @@
+{application,couchbeam}.
+{packages,[]}.
+{modules,[couchbeam,couchbeam_db,couchbeam_deps,couchbeam_doc,
+          couchbeam_manager,couchbeam_mochijson2,couchbeam_mochinum,
+          couchbeam_resource,couchbeam_server,couchbeam_sup,couchbeam_util,
+          couchbeam_uuids,couchbeam_view]}.
