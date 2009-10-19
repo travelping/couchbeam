@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Couchbeam - Changelog
+</title>
+    <!--[if IE]>
+
+    <script>
+        // allow IE to recognize HTMl5 elements
+        document.createElement('section');
+        document.createElement('article');
+        document.createElement('aside');
+        document.createElement('footer');
+        document.createElement('header');
+        document.createElement('nav');
+        document.createElement('time');
+
+    </script>
+    <![endif]-->
+    <link rel="stylesheet" href="/css/couchbeam.css?20091017" type="text/css" media="screen, projection" />
+</head>
+<body>
+  <header id="mainhead">
+    <h1><a href="index.html">Couchbeam 0.3</a></h1>
+    <p id="download">get the source in <a href="http://github.com/benoitc/couchbeam">git</a> or <a href="http://bitbucket.org/benoitc/couchbeam">hg</a>, then <a href="http://bitbucket.org/benoitc/couchbeam">send feedback</a></p>
+    
+  </header>
+  
+  <section id="content">
+    <h1>Changelog</h1>
+
+    <p>This is the changelog of couchbeam.</p>
+
+    <article class="change">
+      <header>
+        <h2>0.3 - <time datetime="2009-10-16">October, 16, 2009</time></h2>
+      </header>
+      <ul>
+        <li><strong>suscribe to db changes</strong>with <code>couchbeam_db:suscribe/2, couchbeam_db:suscribe/3</code> , refer to doc for more information.
+        <li>capabilities to recover server connections and dbs in case something bad happened.</li>
+        <li>couchbeam_server:close(Connection) has been added.</li>
+        <li>couchbeam_db:register_db don't exist anymore. Instead use couchbeam_db:open_db(Connection, {Alias, DbName}), or just couchbeam_db:open_db(Connection, DbName), then alias of db is {ConnectionName, DbName}.</li>
+        <li>couchbeam_manager:register_server, parameters changed it take now <code>ConnectionPid, CouchdbParams</code>.</li>
+        <li>fix view closing which sometimes restarted the db gen_server</li>
+      </ul>
+    </article>
+      
+    <article class="change">
+      <header>
+        <h2>0.2 - <time datetime="2009-09-30">September, 30, 2009</time></h2>
+      </header>
+      <ul>
+        <li>complete rewrite of API. full OTP application. More details of new API are <a href="http://bitbucket.org/benoitc/couchbeam/wiki/GettingStarted">here</a></li>
+        <li>use of <a href="http://bitbucket.org/etc/lhttpc/overview/">lhttpc</a> rather than our own client. lhttpc is more tested than old http client also it allows us to reuse connections.</li>
+      </ul>
+
+      <h3>TODO :</h3>
+
+      <ul>
+        <li>add streaming support back by implementing it in lhttpc</li>
+        <Li>management of oauth</li>
+      </ul>
+    </article>
+
+    <article class="change">
+      <header>
+        <h2>0.1 - <time datetime="2009-07-30">July 30, 2009</time></h2>
+      </header>
+    
+      <p>First version of couchbeam. Api is similar in some way to other erlang client but ith OTP design in view. Also include our own http client that allow streaming.</p>
+    </article>
+  </section>
+  
+  <footer>
+    <p>2009 &copy; <a href="http://benoitc.im">Benoît Chesneau</a> - Some rights resenved</p>
+  </footer>
+</body>

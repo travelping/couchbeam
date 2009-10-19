@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <title>Couchbeam - Welcome to the Couchbeam project
-</title>
+    <title>Couchbeam - Listen DB changes</title>
     <!--[if IE]>
 
     <script>
@@ -28,16 +27,27 @@
   </header>
   
   <section id="content">
-    <p><strong>Couchbeam</strong>is a simple erlang <a href="http://couchdb.apache.org">CouchDB</a> framework. Couchbeam provides you a full featured and easy client to access and manage multiple couchdb Nodes.<p>
+    <h1>Listen Db Changes</h1>
 
-    <p>Couchbeam is under Apache License 2. see LICENSE file for more details.</p>
+    <p>With version 0.3 it's now possible to listen continuously the changes on your db. This is provided by the functions <code>couchbeam_db:suscribe/2</code> or <code>couchbeam_db:suscribe/3</code>.</p>
+
+    <p>Usage of this function is very simple, you provide a pid to the function and each time the db will be updated an event is sent to this pid. Events are :</p>
     <ul>
-      <li><a href="http://github.com/benoitc/couchbeam/downloads">Download couchbeam 0.3</a></li>
-      <li><a href="gettingstarted.html">Getting started</a></li>
-      <li><a href="listen_changes.html">Listen db changes continuously</a></li>
-      <li><a href="doc/">API</a></li>
-      <li><a href="changelog.html">Changelog</a></li>
+      <li>{body_pid, Pid} -> the pid of the incoming body. You  could use it directly if you need</li>
+      <li>body_done -> end of send</li>
+      <li>{body_done, Body} -> same as above but with an optionnal body</li>
+      <li>{change, Change} -> the decoded change line in erlang object</li>
+      <li>{error, Reason}</li>
+      <li>{'EXIT', Reason}</li>
     </ul>
+    
+    <p>more details about options :</p>
+
+    <script src="http://friendpaste.com/3oMKD4IaQI4tgwaCKrCWgb.js"></script>
+
+    <h2>Quick example :</h2>
+
+    <script src="http://friendpaste.com/1hMpaHkhV86ulH5CqcisJq.js"></script>
   </section>
   
   <footer>
