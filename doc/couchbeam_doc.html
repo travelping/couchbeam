@@ -20,6 +20,14 @@
 <p><tt>key_val() = <a href="#type-lis">lis()</a> | binary()</tt></p>
 
 
+<h3 class="typedecl"><a name="type-key_val">key_val()</a></h3>
+<p><tt>key_val() = <a href="#type-lis">lis()</a> | binary()</tt></p>
+
+
+<h3 class="typedecl"><a name="type-key_val">key_val()</a></h3>
+<p><tt>key_val() = list() | binary()</tt></p>
+
+
 <h3 class="typedecl"><a name="type-property">property()</a></h3>
 <p><tt>property() = <a href="#type-json_obj">json_obj()</a> | tuple()</tt></p>
 
@@ -28,10 +36,18 @@
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_attachment-3">add_attachment/3</a></td><td>add attachment  to a doc and encode it.</td></tr>
 <tr><td valign="top"><a href="#add_attachment-4">add_attachment/4</a></td><td>add attachment  to a doc and encode it with ContentType fixed.</td></tr>
 <tr><td valign="top"><a href="#delete_inline_attachment-2">delete_inline_attachment/2</a></td><td>delete an attachment record in doc.</td></tr>
+<tr><td valign="top"><a href="#delete_value-2">delete_value/2</a></td><td>Deletes all entries associated with Key in json object.</td></tr>
 <tr><td valign="top"><a href="#extend-2">extend/2</a></td><td>extend a jsonobject by a property or list of property.</td></tr>
 <tr><td valign="top"><a href="#extend-3">extend/3</a></td><td>extend a jsonobject by key, value.</td></tr>
-<tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td>get value from a json obje
+<tr><td valign="top"><a href="#get_id-1">get_id/1</a></td><td>get document id.</td></tr>
+<tr><td valign="top"><a href="#get_idrev-1">get_idrev/1</a></td><td>get  a tuple containing docucment id and revision.</td></tr>
+<tr><td valign="top"><a href="#get_rev-1">get_rev/1</a></td><td>get document revision.</td></tr>
+<tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td>Returns the value of a simple key/value property in json object
+  Equivalent to get_value(Key, JsonObj, undefined).</td></tr>
+<tr><td valign="top"><a href="#get_value-3">get_value/3</a></td><td>Returns the value of a simple key/value property in json object
   function from erlang_couchdb.</td></tr>
+<tr><td valign="top"><a href="#is_saved-1">is_saved/1</a></td><td>If document have been saved (revision is defined) return true,
+  else, return false.</td></tr>
 <tr><td valign="top"><a href="#set_value-3">set_value/3</a></td><td>set a value for a key in jsonobj.</td></tr>
 </table>
 
@@ -53,6 +69,11 @@
 </div><p>delete an attachment record in doc. This is different from delete_attachment
        change is only applied in Doc object. Save_doc should be save to save changes.</p>
 
+<h3 class="function"><a name="delete_value-2">delete_value/2</a></h3>
+<div class="spec">
+<p><tt>delete_value(Key::<a href="#type-key_val">key_val()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
+</div><p>Deletes all entries associated with Key in json object.</p>
+
 <h3 class="function"><a name="extend-2">extend/2</a></h3>
 <div class="spec">
 <p><tt>extend(Prop::<a href="#type-property">property()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
@@ -63,11 +84,38 @@
 <p><tt>extend(Key::binary(), Value::<a href="#type-json_term">json_term()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
 </div><p>extend a jsonobject by key, value</p>
 
+<h3 class="function"><a name="get_id-1">get_id/1</a></h3>
+<div class="spec">
+<p><tt>get_id(Doc::<a href="#type-json_obj">json_obj()</a>) -&gt; binary()</tt></p>
+</div><p>get document id.</p>
+
+<h3 class="function"><a name="get_idrev-1">get_idrev/1</a></h3>
+<div class="spec">
+<p><tt>get_idrev(Doc::<a href="#type-json_obj">json_obj()</a>) -&gt; {DocId, DocRev}</tt></p>
+</div><p>get  a tuple containing docucment id and revision.</p>
+
+<h3 class="function"><a name="get_rev-1">get_rev/1</a></h3>
+<div class="spec">
+<p><tt>get_rev(Doc::<a href="#type-json_obj">json_obj()</a>) -&gt; binary()</tt></p>
+</div><p>get document revision.</p>
+
 <h3 class="function"><a name="get_value-2">get_value/2</a></h3>
 <div class="spec">
 <p><tt>get_value(Key::<a href="#type-key_val">key_val()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; term()</tt></p>
-</div><p>get value from a json obje
+</div><p>Returns the value of a simple key/value property in json object
+  Equivalent to get_value(Key, JsonObj, undefined).</p>
+
+<h3 class="function"><a name="get_value-3">get_value/3</a></h3>
+<div class="spec">
+<p><tt>get_value(Key::<a href="#type-key_val">key_val()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>, Default::term()) -&gt; term()</tt></p>
+</div><p>Returns the value of a simple key/value property in json object
   function from erlang_couchdb</p>
+
+<h3 class="function"><a name="is_saved-1">is_saved/1</a></h3>
+<div class="spec">
+<p><tt>is_saved(Doc::<a href="#type-json_obj">json_obj()</a>) -&gt; <a href="#type-boolean">boolean()</a></tt></p>
+</div><p>If document have been saved (revision is defined) return true,
+  else, return false.</p>
 
 <h3 class="function"><a name="set_value-3">set_value/3</a></h3>
 <div class="spec">
@@ -76,6 +124,6 @@
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Oct 20 2009, 14:53:24.</i></p>
+<p><i>Generated by EDoc, Oct 24 2009, 21:02:23.</i></p>
 </body>
 </html>
