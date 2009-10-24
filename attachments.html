@@ -55,7 +55,7 @@
     <script src="http://friendpaste.com/5hAHrLaWx6KvGjwpO0oq01.js"></script>
     
     <h3>Get an attachment</h3>
-    <p>To stream attachment fetching just provide the atom <code>true</code> as the end of the function <code>couchbeam_db:fetch_attachment/4</code>. The function will return you a pid. To fetch the attachment you have to use the function <code>couchbeam_resource:get_body_part/1</code>. This function return a state which is <code>{ok, Bin}</code> when a data arrive, <em>Bin</em> is a binary, when the attachment is arrived the function return <code>{ok, {http_eob, Trailers}}</code>, where you also ger ending http trailers (you don't need them most of the time). Ex: </p>
+    <p>To stream attachment fetching just provide the atom <code>true</code> as the end of the function <code>couchbeam_db:fetch_attachment/4</code>. The function will return you a pid. To fetch the attachment you have to use the function <code>couchbeam_resource:get_body_part/1</code>. This function return a state which is <code>{ok, Bin}</code> when a data arrives, <em>Bin</em> is a binary. When the attachment is arrived the function return <code>{ok, {http_eob, Trailers}}</code>, where you also get ending http trailers (you don't need them most of the time). Ex: </p>
     
     <script src="http://friendpaste.com/7A3jbhGWRjeCCNLtRem047.js"></script>
     
