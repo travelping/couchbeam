@@ -23,7 +23,7 @@
 <body>
   <div id="container">
   <header id="mainhead">
-    <h1><a href="index.html">Couchbeam 0.4</a></h1>
+    <h1><a href="index.html">Couchbeam 0.4.1</a></h1>
     <p id="download">get the source in <a href="http://github.com/benoitc/couchbeam">git</a> or <a href="http://bitbucket.org/benoitc/couchbeam">hg</a>, then <a href="http://github.com/benoitc/couchbeam/issues">send feedback</a></p>
     
   </header>
@@ -32,7 +32,30 @@
     <h1>Changelog</h1>
 
     <p>This is the changelog of couchbeam.</p>
-
+    
+    <article class="change" id="v04">
+        <header>
+          <h2>0.4.1 - <time datetime="2009-11-22">November, 22, 2009</time></h2>
+        </header>
+        <ul>
+          <li>Added couchbeam_view:first/1 and couchbeam_view:first/2 function allowing you to retrieve first result of a view.</li>
+          <li>Fix. Key in params could now be an atom, binary or list.</li>
+          <li>Fix. encode dbname</li>
+          <li>Support for couchdb-lucene or other external indexer in views results.</li>
+          <li>include_docs is now handled in view results. now fetch_view return
+              <ul>
+                <li>[id] if value not given</li>
+                <li>{Id, Key, Value] -> if value only</li>
+                <li>{Id, key, Value, Doc} if doc is included.</li>
+              </ul>
+          </li>
+          <li>Make sure docid is encoded.</li>
+          <li>Fix. couchbdeam_doc:extend update property if it exists or add it.</li>
+        </ul>
+      </article>
+      
+      
+      
      <article class="change" id="v04">
         <header>
           <h2>0.4 - <time datetime="2009-10-16">October, 24, 2009</time></h2>
