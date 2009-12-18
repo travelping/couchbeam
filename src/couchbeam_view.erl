@@ -69,16 +69,16 @@ close_view(ViewPid) ->
 %% gen_server callbacks
 %%---------------------------------------------------------------------------
 %% @private                 
-init({Vname, Params, #db{server=ServerState, couchdb=CouchdbParams, base=BaseDB}=DbState}) -> 
+init({Vname, Params, #db{server=ServerState, couchdb=CouchdbParams, name=DbName}=DbState}) -> 
     Base = case Vname of
         '_all_docs' ->
-            io_lib:format("~s/_all_docs", [BaseDB]);
+            io_lib:format("~s/_all_docs", [DbName]);
         '_all_docs_by_seq' ->
-            io_lib:format("~s/_all_docs_by_seq", [BaseDB]);
+            io_lib:format("~s/_all_docs_by_seq", [DbName]);
         {DName, VName1} ->
-            io_lib:format("~s/_design/~s/_view/~s", [BaseDB, DName, VName1]);
+            io_lib:format("~s/_design/~s/_view/~s", [DbName, DName, VName1]);
         {AnotherBase,DName,VName1} ->
-            io_lib:format("~s/~s/~s/~s",[BaseDB,AnotherBase,DName,VName1])
+            io_lib:format("~s/~s/~s/~s",[DbName,AnotherBase,DName,VName1])
     end,
     ViewState = #view{server    = ServerState, 
                       couchdb   = CouchdbParams, 

@@ -39,20 +39,14 @@ start_connection_link() -> start_connection_link(#couchdb_params{}).
 
 start_connection_link(Params) -> start_connection_internal(Params, true).        
 
-start_connection_internal(#couchdb_params{prefix=Prefix,name=Name}=CouchdbParams,
+start_connection_internal(#couchdb_params{name=Name}=CouchdbParams,
                     ProcLink) ->
     Pid = case server_pid(Name) of
         not_found ->
-            Prefix1 = case Prefix of
-                "" -> "/";
-                _ -> Prefix
-            end,
-            CouchdbParams1 = CouchdbParams#couchdb_params{prefix=Prefix1},
-            InitialState = #server_state{couchdb = CouchdbParams1,
-                                         prefix  = Prefix1,
+            InitialState = #server_state{couchdb = CouchdbParams,
                                          name=Name},
             {ok, Pid1} = start_internal(InitialState, ProcLink),
-            couchbeam_manager:register_connection(Pid1, CouchdbParams1),
+            couchbeam_manager:register_connection(Pid1, CouchdbParams),
             Pid1;
         Pid1 -> Pid1
     end,
@@ -144,27 +138,26 @@ init(#server_state{couchdb=C, prefix=P} = InitialState) ->
     process_flag(trap_exit, true),
     {ok, State}.
     
-handle_call(info, _From, #server_state{prefix=Base, couchdb=C}=State) ->
-    {ok, {Infos}} = couchbeam_resource:get(C, Base, [], [], []),
+handle_call(info, _From, #server_state{couchdb=C}=State) ->
+    {ok, {Infos}} = couchbeam_resource:get(C, "", [], [], []),
     {reply, Infos, State};
     
 handle_call(close, _, State) ->
     server_close(State),
     {stop, normal, State};
     
-handle_call(all_dbs, _From, #server_state{prefix=Base, couchdb=C}=State) ->
-    {ok, AllDbs} = couchbeam_resource:get(C, Base ++ "_all_dbs", [], [], []),
+handle_call(all_dbs, _From, #server_state{couchdb=C}=State) ->
+    {ok, AllDbs} = couchbeam_resource:get(C, "_all_dbs", [], [], []),
     {reply, AllDbs, State};
 
-handle_call({open_db, DbName, Register}, _From, #server_state{prefix=Base, 
-                                            couchdb=C,
+handle_call({open_db, DbName, Register}, _From, #server_state{couchdb=C,
                                             name=ServerName,
                                             dbs_by_name=DbsNameTid,
                                             dbs_by_pid=DbsPidTid}=State) ->
     {Alias, DbName1} = alias_db(DbName, ServerName),                              
     Pid = case ets:lookup(DbsNameTid, DbName1) of
         [] ->
-            case couchbeam_resource:get(C, Base ++ DbName1, [], [], []) of
+            case couchbeam_resource:get(C, DbName1, [], [], []) of
                 {ok, _} ->
                     
                     {ok, DbPid} = gen_server:start_link(couchbeam_db, {DbName1, State}, []),
@@ -182,15 +175,14 @@ handle_call({open_db, DbName, Register}, _From, #server_state{prefix=Base,
     end,
     {reply, Pid, State};
     
-handle_call({create_db, DbName, Register}, _From, #server_state{prefix=Base,
-                                                couchdb=C,
+handle_call({create_db, DbName, Register}, _From, #server_state{couchdb=C,
                                                 name=ServerName,
                                                 dbs_by_name=DbsNameTid,
                                                 dbs_by_pid=DbsPidTid}=State) ->
     {Alias, DbName1} = alias_db(DbName, ServerName),   
     Pid = case ets:lookup(DbsNameTid, DbName1) of
         [] ->
-            case couchbeam_resource:put(C, Base ++ DbName1, [], [], [], []) of
+            case couchbeam_resource:put(C, DbName1, [], [], [], []) of
                 ok ->
                     {ok, DbPid} = gen_server:start_link(couchbeam_db, {DbName1, State}, []),
                     true = ets:insert(DbsNameTid, {DbName1, DbPid}),
@@ -204,28 +196,27 @@ handle_call({create_db, DbName, Register}, _From, #server_state{prefix=Base,
                 {error, Reason} -> Reason
             end;
         [{_, DbPid1}] -> 
-            case couchbeam_resource:put(C, Base ++ DbName1, [], [], [], []) of
+            case couchbeam_resource:put(C, DbName1, [], [], [], []) of
                 ok -> DbPid1;
                 {error, Reason} -> Reason
             end 
     end,
     {reply, Pid, State};
     
-handle_call({delete_db, DbName}, _From, #server_state{prefix=Base, 
-                                                couchdb=C,
+handle_call({delete_db, DbName}, _From, #server_state{couchdb=C,
                                                 dbs_by_name=DbsNameTid,
                                                 dbs_by_pid=DbsPidTid}=State) ->
                                                     
     Resp = case ets:lookup(DbsNameTid, DbName) of
         [] ->
-            couchbeam_resource:delete(C, Base ++ DbName, [], [], []);
+            couchbeam_resource:delete(C, DbName, [], [], []);
         [{_, Pid}] ->
             exit(Pid, kill),
             receive {'EXIT', Pid, _Reason} -> ok end,
             true = ets:delete(DbsNameTid, DbName),
             true = ets:delete(DbsPidTid, Pid),
             couchbeam_manager:unregister_db(DbName),
-            couchbeam_resource:delete(C, Base ++ DbName, [], [], [])
+            couchbeam_resource:delete(C, DbName, [], [], [])
     end,
     {reply, Resp, State};
     

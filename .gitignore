@@ -4,5 +4,5 @@ ebin/
 *.dump
 edoc-info
 .DS_Store
-
+deps/couchbeam/doc/*.html
 deps/lhttpc/doc/*.html

@@ -165,9 +165,8 @@ handle_info({'DOWN', Ref, _, _, _Reason}, #couchbeam_manager{conns=Conns,
     State1 = case dict:find(Ref, Refs) of
         {ok, {connection, Params}} ->
             Refs1 = dict:erase(Ref, Refs),
-            #couchdb_params{name=Name, prefix=Prefix} = Params,
+            #couchdb_params{name=Name} = Params,
             InitialState = #server_state{couchdb = Params,
-                                         prefix  = Prefix,
                                          name=Name},
             {ok, Pid} = gen_server:start_link(couchbeam_server, InitialState, []),
             Ref1 = erlang:monitor(process, Pid),

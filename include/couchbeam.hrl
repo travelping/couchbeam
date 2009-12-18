@@ -18,15 +18,25 @@
 -type headers() :: [header()].
 
 -record(couchdb_params, {
-    host        = "127.0.0.1" :: string(),
-    port        = 5984 :: integer(),
-    ssl         = false :: boolean(),
-    prefix      = "/" :: string(),
+    url         = "http://127.0.0.1:5984/" :: string(),
     username    = nil :: string(),
     password    = nil :: string(),
     name        = default :: term(),
     timeout     = infinity :: integer() | infinity
 }).
+
+-record(http_req, {
+    couchdb,
+    method,
+    path,
+    headers,
+    params,
+    body=nil,
+    options,
+    conn=nil,
+    retries=2
+}).
+
 
 -record(server_state, {
     couchdb = #couchdb_params{},

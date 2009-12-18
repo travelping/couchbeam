@@ -233,22 +233,21 @@ encode_docid1(DocId) ->
 %%---------------------------------------------------------------------------
 %% @private
 
-init({DbName, #server_state{couchdb=C, prefix=Prefix} = ServerState}) ->
+init({DbName, #server_state{couchdb=C} = ServerState}) ->
     State = #db{name    = DbName,
                 server  = ServerState,
-                couchdb = C,
-                base    = Prefix ++ DbName},
+                couchdb = C},
     {ok, State}.
     
-handle_call(info, _From, #db{couchdb=C, base=Base} = State) ->
-    Infos = case couchbeam_resource:get(C, Base, [], [], []) of
+handle_call(info, _From, #db{couchdb=C, name=DbName} = State) ->
+    Infos = case couchbeam_resource:get(C, DbName, [], [], []) of
         {ok, {Infos1}} -> Infos1;
         {error, Reason} -> Reason
     end,
     {reply, Infos, State};
     
-handle_call({open_doc, DocId, Params}, _From, #db{couchdb=C, base=Base} = State) ->
-    Path = Base ++ "/" ++ DocId,
+handle_call({open_doc, DocId, Params}, _From, #db{couchdb=C, name=DbName} = State) ->
+    Path = DbName ++ "/" ++ DocId,
     Doc = case couchbeam_resource:get(C, Path, [], Params, []) of
         {ok, Doc1} -> Doc1;
         {error, Reason} -> Reason
@@ -256,7 +255,7 @@ handle_call({open_doc, DocId, Params}, _From, #db{couchdb=C, base=Base} = State)
     {reply, Doc, State};
     
 handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C, 
-                                                base=Base} = State) ->
+                                                name=DbName} = State) ->
     {Props} = Doc,
     DocId = case proplists:get_value(<<"_id">>, Props) of
         undefined ->
@@ -264,7 +263,7 @@ handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C,
             couchbeam_uuids:next_uuid(UuidsPid);
         Id1 -> encode_docid(Id1)
     end,
-    Path = Base ++ "/" ++ DocId,
+    Path = DbName ++ "/" ++ DocId,
     Body = couchbeam:json_encode(Doc),
     Resp = case couchbeam_resource:put(C, Path, [], Params, Body, []) of
         {ok, {Props1}} ->
@@ -278,14 +277,14 @@ handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C,
     end,
     {reply, Resp, State};
             
-handle_call({save_docs, Docs, Opts}, _From, #db{couchdb=C,base=Base} = State) ->
+handle_call({save_docs, Docs, Opts}, _From, #db{couchdb=C,name=DbName} = State) ->
     Docs1 = [maybe_docid(State, Doc) || Doc <- Docs],
     JsonObj = case proplists:get_value(all_or_nothing, Opts, false) of
         true -> {[{<< "all_or_nothing">>, true}, {<<"docs">>, Docs1}]};
         false -> {[{<<"docs">>, Docs1}]}
     end,
     Body = couchbeam:json_encode(JsonObj),
-    Path = Base ++ "/_bulk_docs",
+    Path = DbName ++ "/_bulk_docs",
     Res = case couchbeam_resource:post(C, Path, [], [], Body, []) of
         {ok, Results} ->
             % TODO: we could aggregate resulst here, maybe an option?
@@ -298,8 +297,8 @@ handle_call({query_view, Vname, Params}, _From, State) ->
     {ok, ViewPid} = gen_server:start_link(couchbeam_view, {Vname, Params, State}, []),
     {reply, ViewPid, State};
      
-handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, base=Base}=State) ->
-    Path = io_lib:format("~s/~s/~s", [Base, DocId, AName]),
+handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, name=DbName}=State) ->
+    Path = io_lib:format("~s/~s/~s", [DbName, DocId, AName]),
     Options = case Streaming of     
         true ->
             [{partial_download, [{window_size, infinity}, {part_size, ?STREAM_CHUNK_SIZE}]}];
@@ -310,7 +309,7 @@ handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, b
     {reply, {C, Path, Options}, State};
 
 handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From, 
-            #db{couchdb=C, base=Base}=State) ->
+            #db{couchdb=C, name=DbName}=State) ->
     {DocId, Rev, IsJson} = case Doc of
         {Id, Rev1} -> {Id, Rev1, false};
         _ ->
@@ -319,7 +318,7 @@ handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From,
             {DocId1, Rev2, true}
     end,
     Headers = [{"Content-Length", couchbeam_util:val(Length)}, {"Content-Type", ContentType}],
-    Path = io_lib:format("~s/~s/~s", [Base, encode_docid(DocId), AName]),
+    Path = io_lib:format("~s/~s/~s", [DbName, encode_docid(DocId), AName]),
     Resp = case couchbeam_resource:put(C, Path, Headers, [{"rev", Rev}], Content, []) of
         {error, Reason} -> Reason;
         {ok, R} when (IsJson =:= true) ->
@@ -333,7 +332,7 @@ handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From,
     end,
     {reply, Resp, State};
     
-handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=State) ->
+handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, name=DbName}=State) ->
     {DocId, Rev, IsJson} = case Doc of
         {Id, Rev1} -> {Id, Rev1, false};
         _ ->
@@ -341,7 +340,7 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
             Rev2 = couchbeam_doc:get_value(<<"_rev">>, Doc),
             {DocId1, Rev2, true}
     end,
-    Path = io_lib:format("~s/~s/~s", [Base, encode_docid(DocId), AName]),
+    Path = io_lib:format("~s/~s/~s", [DbName, encode_docid(DocId), AName]),
     Resp = case couchbeam_resource:delete(C, Path, [], [{"rev", Rev}], []) of
         {error, Reason} -> Reason;
         {ok, R} when (IsJson =:= true) ->
@@ -355,7 +354,7 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
     end,
     {reply, Resp, State};
     
-handle_call({suscribe_changes, Consumer, Options}, _From, #db{base=Base} = State) ->
+handle_call({suscribe_changes, Consumer, Options}, _From, #db{name=DbName} = State) ->
     {Timeout, Options1} = get_option(timeout, Options),
     {HeartBeat, Options2} = get_option(heartbeat, Options1),
     
@@ -375,11 +374,13 @@ handle_call({suscribe_changes, Consumer, Options}, _From, #db{base=Base} = State
     end,
     ExtraParams1 = ExtraParams ++ Options2,
 
-    Path0 = Base ++ "/_changes?feed=continuous",
+    Path0 = DbName ++ "/_changes?feed=continuous",
     Path = case ExtraParams1 of
         [] -> Path0;
         Extra -> Path0 ++ "&" ++ couchbeam_resource:encode_query(Extra)
     end,
+    
+    
     ChangeState = #change{db=State, path=Path, consumer_pid=Consumer},
     Pid = spawn_link(fun() -> suscribe_changes(ChangeState) end),
     {reply, Pid, State}.
@@ -416,22 +417,9 @@ suscribe_changes(#change{consumer_pid=ConsumerPid}=ChangeState) ->
 
 do_suscribe(#change{db=DbState, path=Path, consumer_pid=ConsumerPid}) ->
     #db{couchdb=CouchdbState} = DbState,
-    #couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=CouchdbState,
+    #couchdb_params{url=Url, timeout=Timeout}=CouchdbState,
     Headers = [{"Accept", "application/json"}],
-    Options = [{partial_download, [{window_size, infinity}]}],
-    case lhttpc:request(Host, Port, Ssl, Path, 'GET', Headers, <<>>, Timeout, Options) of
-        {ok, {{_, _}, _, ResponseBody}} ->
-            case ResponseBody of
-                Body when is_pid(Body) ->
-                    ConsumerPid ! {body_pid, ResponseBody},
-                    InitialState = lhttpc:get_body_part(ResponseBody),
-                    send_changes(InitialState, ConsumerPid, ResponseBody);
-                _Body ->
-                    ConsumerPid ! {body_done, ResponseBody}
-            end;
-        {error, Reason} ->
-            ConsumerPid ! {error, Reason}
-    end.
+    Options = [{partial_download, [{window_size, infinity}]}].
     
 send_changes({ok, {http_eob, _Trailers}}, ConsumerPid, _Pid) ->
     ConsumerPid ! body_done,

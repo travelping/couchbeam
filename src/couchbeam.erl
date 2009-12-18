@@ -61,7 +61,7 @@ version() ->
 
 start(_Start_Type, _Start_Args) ->
     couchbeam_deps:ensure(),
-    case start_apps([ssl, crypto, lhttpc]) of
+    case start_apps([crypto, sasl, ssl, ibrowse]) of
         ok->
             couchbeam_sup:start_link();
         {error, Reason} ->

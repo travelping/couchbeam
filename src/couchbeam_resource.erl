@@ -20,102 +20,82 @@
 -include("couchbeam.hrl").
 
 
--export([get/5, head/5, delete/5, post/6, put/6]).
--export([get_body_part/1,get_body_part/2]).
--export([encode_query/1]).
+-export([get/5, head/5, delete/5, post/6, put/6, request/1]).
+-export([encode_query/1, make_uri/3]).
 
--record(response, {
-    method,
-    status,
-    reason,
-    headers,
-    body
-}).
 
 get(State, Path, Headers, Params, Opts) ->
-    request(State, "GET", Path, Headers, Params, [], Opts).
+    request(#http_req{couchdb=State, method=get,
+        path=Path, headers=Headers, params=Params, options=Opts}).
 
 head(State, Path, Headers, Params, Opts) ->
-    request(State, "HEAD", Path, Headers, Params, [], Opts).
+    request(#http_req{couchdb=State, method=head,
+        path=Path, headers=Headers, params=Params, options=Opts}).
     
 delete(State, Path, Headers, Params, Opts) ->
-    request(State, "DELETE", Path, Headers, Params, [], Opts).
+    request(#http_req{couchdb=State, method=delete,
+        path=Path, headers=Headers, params=Params, options=Opts}).
 
 post(State, Path, Headers, Params, Body, Opts) ->
-    request(State, "POST", Path, Headers, Params, Body, Opts).
+    request(#http_req{couchdb=State, method=post,
+        path=Path, headers=Headers, params=Params, body=Body, options=Opts}).
+
 
 put(State, Path, Headers, Params, Body, Opts) ->
-    request(State, "PUT", Path, Headers, Params, Body, Opts).
+    request(#http_req{couchdb=State, method=put,
+        path=Path, headers=Headers, params=Params, body=Body, options=Opts}).
     
+request(#http_req{retries=0}) ->
+    {error, request_failed};
     
-request(State, Method, Path, Headers, Params, Body, Options) ->
-    Path1 = lists:append([Path, 
-            case Params of
-            [] -> [];
-            Props -> "?" ++ encode_query(Props)
-            end]),
-    Headers1 = make_auth(State, Headers),
-    Headers2 = default_header("Content-Type", "application/json", Headers1),
-        
-     case has_body(Method) of
-            true ->
-                case make_body(Body, Headers2, Options) of
-                    {Headers3, Options1, InitialBody, BodyFun} ->
-                        do_request(State, Method, Path1, Headers3, {BodyFun, InitialBody}, Options1);
-                    Error ->
-                        Error
-                end;
-            false ->
-                do_request(State, Method, Path1, Headers2, {nil, <<>>}, Options)
-    end.
+request(Req) ->
+                
+    #http_req{
+        couchdb=State,
+        method=Method,
+        path=Path,
+        headers=Headers,
+        params=Params,
+        body=Body,
+        options=Options,
+        conn = Conn
+    } = Req,
     
-
-do_request(#couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout},
-        Method, Path, Headers, {BodyFun, InitialBody}, Options) ->
-    case lhttpc:request(Host, Port, Ssl, Path, Method, Headers, InitialBody, Timeout, Options) of
-        {ok, {{StatusCode, ReasonPhrase}, ResponseHeaders, ResponseBody}} ->
-            State = #response{method    = Method,
-                              status    = StatusCode,
-                              reason    = ReasonPhrase, 
-                              headers   = ResponseHeaders,
-                              body      = ResponseBody},
-                              
-            make_response(State);
-        {ok, UploadState} -> %% we stream
-            case stream_body(BodyFun, UploadState) of
-                {ok, {{StatusCode, ReasonPhrase}, ResponseHeaders, ResponseBody}} ->
-                    State = #response{method    = Method,
-                                      status    = StatusCode,
-                                      reason    = ReasonPhrase, 
-                                      headers   = ResponseHeaders,
-                                      body      = ResponseBody},
-
-                    make_response(State);
-                Error -> Error
-            end;
-        Error -> Error
-    end.  
+    #couchdb_params{url=Url, timeout=Timeout}=State,
     
-make_response(#response{method=Method, status=Status, reason=Reason, body=Body}) ->
+    Url1 = make_uri(Url, Path, Params),
+    Options1 = make_auth(State, Options),
+    Headers1 = default_header("Content-Type", "application/json", Headers),
+    Body1 = case Body of
+        {Fun, InitialState} when is_function(Fun) ->
+            {Fun, InitialState};
+        nil -> [];
+        [] -> [];
+        _Else ->
+            iolist_to_binary(Body)
+    end,
+    
+    Resp = case Conn of
+        nil ->
+            ibrowse:send_req(Url1, Headers1, Method, Body1, Options1, Timeout);
+        _ ->
+            ibrowse:send_req_direct(Conn, Url1, Headers1, Method, Body1, Options1, Timeout)
+    end,
+    make_response(Resp, Req).
+    
+make_response({ok, Status, Headers, Body}, #http_req{method=Method}=Req) ->
+    Code = list_to_integer(Status),
     if
-        Status >= 400, Status == 404 ->
-             {error, not_found};
-        Status >= 400, Status == 409 ->
-             {error, conflict};
-        Status >= 400, Status == 412 ->
-             {error, precondition_failed};
-        Status >= 400 ->
-             {error, {unknown_error, Status}};
-        true ->
+        Code =:= 200; Code =:= 201 ->
             if
                 Method == "HEAD" ->
-                    {ok, {Status, Reason}};
+                    {ok, Status};
                 true ->
                     case is_pid(Body) of
                         true ->
                             {ok, Body};
                         false ->
-                            try couchbeam:json_decode(binary_to_list(Body)) of
+                            try couchbeam:json_decode(Body) of
                                 Resp1 -> 
                                     case Resp1 of
                                         {[{<<"ok">>, true}]} -> ok;
@@ -126,16 +106,52 @@ make_response(#response{method=Method, status=Status, reason=Reason, body=Body})
                                 _:_ -> {ok, Body}
                             end
                     end
-            end
+            end;
+        Code >= 400, Code == 404 ->
+            {error, not_found};
+        Code >= 400, Code == 409 ->
+            {error, conflict};
+        Code >= 400, Code == 412 ->
+            {error, precondition_failed};
+        Status >= 400, Code < 500 ->
+            {error, {unknown_error, Status}};
+        Code =:= 500; Code =:= 502; Code =:= 503 ->
+            #http_req{retries=Retries} = Req,
+            request(Req#http_req{retries=Retries-1});
+        true ->
+            {error, {request_failed, {"unknow reason", Status}}}
+    end;
+    
+make_response({ibrowse_req_id, Id}, _Req) ->
+    {ibrowse_req_id, Id};
+make_response({error, _Reason}, #http_req{retries=0}) ->
+    {error, request_failed};
+make_response({error, Reason}, Req) ->
+    #http_req{retries=Retries} = Req,
+    if 
+        Reason == worker_is_dead ->
+            C = spawn_link_worker_process(Req),
+            request(Req#http_req{retries=Retries-1, conn=C});
+        true ->
+            request(Req#http_req{retries=Retries-1})
     end.
 
-make_auth(#couchdb_params{username=nil, password=nil}, Headers) ->
-    Headers;
-make_auth(#couchdb_params{username=_UserName, password=nil}=State, Headers) ->
-    make_auth(State#couchdb_params{password=""}, Headers);
-make_auth(#couchdb_params{username=UserName, password=Password}, Headers) ->
-    default_header("Authorization", "Basic " ++
-          base64:encode_to_string(UserName ++ ":" ++ Password), Headers).
+make_uri(Url, Path, Params) when is_binary(Url) ->
+    make_uri(binary_to_list(Url), Path, Params);
+make_uri(Url, Path, Params) ->
+    Path1 = lists:append([Path, 
+            case Params of
+                [] -> [];
+                Props -> "?" ++ encode_query(Props)
+            end]),
+    Url ++ Path1.
+
+make_auth(#couchdb_params{username=nil, password=nil}, Options) ->
+    Options;
+make_auth(#couchdb_params{username=_UserName, password=nil}=State, Options) ->
+    make_auth(State#couchdb_params{password=""}, Options);
+make_auth(#couchdb_params{username=UserName, password=Password}, Options) ->
+    [{basic_auth, {UserName, Password}}|Options].
     
 encode_query(Props) ->
     RevPairs = lists:foldl(fun ({K, V}, Acc) ->
@@ -187,78 +203,7 @@ body_length(H) ->
         _ -> true
     end.
     
-make_body(Body, Headers, Options) when is_list(Body) ->
-    {default_content_length(Body, Headers), Options, Body, nil};
-make_body(Body, Headers, Options) when is_binary(Body) ->
-    {default_content_length(Body, Headers), Options, Body, nil};
-make_body(Fun, Headers, Options) when is_function(Fun) ->
-    case body_length(Headers) of
-        true ->
-            {ok, InitialState} = Fun(),
-            Options1 = [{partial_upload, infinity}|Options],
-            {Headers, Options1, InitialState, Fun};
-        false ->
-            {error,  "Content-Length undefined"}
-    end;
-make_body({Fun, State}, Headers, Options) when is_function(Fun) ->
-    case body_length(Headers) of
-        true ->
-            Options1 = [{partial_upload, infinity}|Options],
-            {ok, InitialState, NextState} = Fun(State),
-            
-            {Headers, Options1, InitialState, {Fun, NextState}};
-        false ->
-            {error,  "Content-Length undefined"}
-    end;
-make_body(_, _, _) ->
-    {error, "body invalid"}.
-     
-     
-stream_body({Source, State}, CurrentState) ->
-    do_stream_body(Source, Source(State), CurrentState);
-stream_body(Source, CurrentState) ->
-    do_stream_body(Source, Source(), CurrentState).
-    
-do_stream_body(Source, Resp, CurrentState) ->
-    case Resp of
-        {ok, Data} ->
-            {ok, NextState} = lhttpc:send_body_part(CurrentState, Data),
-            stream_body(Source, NextState);
-        {ok, Data, NewSourceState} ->
-            {ok, NextState} = lhttpc:send_body_part(CurrentState, Data),
-            stream_body({Source, NewSourceState}, NextState);
-        eof ->
-            lhttpc:send_body_part(CurrentState, http_eob)
-    end.
-            
-%% @spec (HTTPClient :: pid()) -> Result
-%%   Result = {ok, Bin} | {ok, {http_eob, Trailers}} 
-%%   Trailers = [{Header, Value}]
-%%   Header = string() | binary() | atom()
-%%   Value = string() | binary()
-%% @doc Reads a body part from an ongoing response when
-%% `Streaming` option is true in `couchbeam_db:fetch_attchment/4`. The default timeout,
-%% `infinity' will be used. 
-%% Would be the same as calling
-%% `get_body_part(HTTPClient, infinity)'.
-%% @end
--spec get_body_part(pid()) -> {ok, binary()} | {ok, {http_eob, headers()}}.
-get_body_part(Pid) ->
-    get_body_part(Pid, infinity).
-
-%% @spec (HTTPClient :: pid(), Timeout:: Timeout) -> Result
-%%   Timeout = integer() | infinity
-%%   Result = {ok, Bin} | {ok, {http_eob, Trailers}} 
-%%   Trailers = [{Header, Value}]
-%%   Header = string() | binary() | atom()
-%%   Value = string() | binary()
-%% @doc Reads a body part from an ongoing response when
-%% `Streaming` option is true in `couchbeam_db:fetch_attchment/4`.
-%% `Timeout' is the timeout for reading the next body part in milliseconds. 
-%% `http_eob' marks the end of the body. If there were Trailers in the
-%% response those are returned with `http_eob' as well. 
-%% @end
--spec get_body_part(pid(), timeout()) -> 
-        {ok, binary()} | {ok, {http_eob, headers()}}.
-get_body_part(Pid, Timeout) ->
-    lhttpc:get_body_part(Pid, Timeout).
+spawn_link_worker_process(#http_req{couchdb=State}) ->
+    Url = ibrowse_lib:parse_url(State#couchdb_params.url),
+    {ok, Pid} = ibrowse_http_client:start_link(Url),
+    Pid.
