@@ -44,7 +44,7 @@ test() ->
     Doc = {[
         {<<"_id">>, <<"test">>}
     ]},
-    Doc1 = couchbeam_db:save_doc(Db, Doc),
+    Doc1 = couchbeam_db:save_doc(Db, Doc),   
     RevDoc1 = couchbeam_doc:get_value(<<"_rev">>, Doc1),
     Doc11 = couchbeam_db:put_attachment(Db, Doc1, "test", "test", length("test")),
     RevDoc11 = couchbeam_doc:get_value(<<"_rev">>, Doc11),

@@ -299,11 +299,11 @@ handle_call({query_view, Vname, Params}, _From, State) ->
      
 handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, name=DbName}=State) ->
     Path = io_lib:format("~s/~s/~s", [DbName, DocId, AName]),
-    Options = case Streaming of     
-        true ->
-            [{partial_download, [{window_size, infinity}, {part_size, ?STREAM_CHUNK_SIZE}]}];
-        false -> []
-    end,
+    Options = [
+        {response_format, binary},
+        {raw, true}
+    ],
+    
 
     
     {reply, {C, Path, Options}, State};
@@ -317,17 +317,23 @@ handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From,
             Rev2 = couchbeam_doc:get_value(<<"_rev">>, Doc),
             {DocId1, Rev2, true}
     end,
-    Headers = [{"Content-Length", couchbeam_util:val(Length)}, {"Content-Type", ContentType}],
-    Path = io_lib:format("~s/~s/~s", [DbName, encode_docid(DocId), AName]),
-    Resp = case couchbeam_resource:put(C, Path, Headers, [{"rev", Rev}], Content, []) of
+    Headers = [
+        {"Content-Type", ContentType}
+    ],
+    Options = [
+        {content_length, couchbeam_util:intval(Length)}, 
+        {response_format, binary}
+    ],
+    io:format("headers ~p ~n", [Headers]),
+    Path = io_lib:format("~s/~s/~s", [DbName, DocId, AName]),
+    Resp = case couchbeam_resource:put(C, Path, Headers, [{"rev", binary_to_list(Rev)}], 
+                            Content, Options) of
         {error, Reason} -> Reason;
-        {ok, R} when (IsJson =:= true) ->
-             {Props} = R,
+        {ok, {Props}}->
              couchbeam_doc:extend([
                  {<<"_id">>, proplists:get_value(<<"id">>, Props)}, 
                  {<<"_rev">>, proplists:get_value(<<"rev">>, Props)}
-             ], Doc);
-        {ok, R} ->  R
+             ], Doc)
     end,
     {reply, Resp, State};
     

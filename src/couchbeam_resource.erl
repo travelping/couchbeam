@@ -49,7 +49,7 @@ request(#http_req{retries=0}) ->
     {error, request_failed};
     
 request(Req) ->
-                
+    
     #http_req{
         couchdb=State,
         method=Method,
@@ -63,18 +63,23 @@ request(Req) ->
     
     #couchdb_params{url=Url, timeout=Timeout}=State,
     
+    
     Url1 = make_uri(Url, Path, Params),
     Options1 = make_auth(State, Options),
-    Headers1 = default_header("Content-Type", "application/json", Headers),
+    Headers1 = default_header("Content-Type", "application/json", 
+        default_header("Accept", "application/json", 
+        default_header("User-Agent", "couchbeam/"++ ?COUCHBEAM_VERSION, Headers))),
+    
     Body1 = case Body of
         {Fun, InitialState} when is_function(Fun) ->
             {Fun, InitialState};
+        Fun when is_function(Fun) ->
+            Fun;
         nil -> [];
         [] -> [];
         _Else ->
             iolist_to_binary(Body)
     end,
-    
     Resp = case Conn of
         nil ->
             ibrowse:send_req(Url1, Headers1, Method, Body1, Options1, Timeout);
@@ -83,7 +88,9 @@ request(Req) ->
     end,
     make_response(Resp, Req).
     
-make_response({ok, Status, Headers, Body}, #http_req{method=Method}=Req) ->
+make_response({ok, Status, Headers, Body}, #http_req{method=Method,options=Options}=Req) ->
+    Raw = proplists:get_value(raw, Options, false),
+    
     Code = list_to_integer(Status),
     if
         Code =:= 200; Code =:= 201 ->
@@ -91,7 +98,7 @@ make_response({ok, Status, Headers, Body}, #http_req{method=Method}=Req) ->
                 Method == "HEAD" ->
                     {ok, Status};
                 true ->
-                    case is_pid(Body) of
+                    case Raw of
                         true ->
                             {ok, Body};
                         false ->
@@ -123,7 +130,11 @@ make_response({ok, Status, Headers, Body}, #http_req{method=Method}=Req) ->
     end;
     
 make_response({ibrowse_req_id, Id}, _Req) ->
+    % we stream to pid
     {ibrowse_req_id, Id};
+    
+    
+    
 make_response({error, _Reason}, #http_req{retries=0}) ->
     {error, request_failed};
 make_response({error, Reason}, Req) ->
@@ -144,7 +155,7 @@ make_uri(Url, Path, Params) ->
                 [] -> [];
                 Props -> "?" ++ encode_query(Props)
             end]),
-    Url ++ Path1.
+    binary_to_list(iolist_to_binary(Url ++ Path1)).
 
 make_auth(#couchdb_params{username=nil, password=nil}, Options) ->
     Options;
@@ -184,6 +195,10 @@ default_header(K, V, H) ->
     true -> H;
     false -> [{K, V}|H]
     end.
+    
+get_option(Option, Options) ->
+    {proplists:get_value(Option, Options), proplists:delete(Option, Options)}.    
+
     
 has_body("HEAD") ->
     false;

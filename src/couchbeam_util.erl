@@ -66,7 +66,7 @@
 
 -export([generate_uuids/1, new_uuid/0, to_hex/1, to_digit/1, 
          join/2, revjoin/3, url_encode/1, quote_plus/1, split/2, 
-         guess_mime/1, val/1, encodeBase64/1]).
+         guess_mime/1, val/1, intval/1, encodeBase64/1]).
 
 
 -define(PERCENT, 37).  % $\%
@@ -197,6 +197,14 @@ val(V) when is_binary(V) ->
     binary_to_list(V);
 val(V) ->
     V.
+    
+    
+intval(V) when is_integer(V) ->
+    V;
+intval(V) when is_binary(V) ->
+    intval(binary_to_list(V));
+intval(V) when is_list(V) ->
+    list_to_integer(V).
 
 %% @spec guess_mime(string()) -> string()
 %% @doc  Guess the mime type of a file by the extension of its filename.

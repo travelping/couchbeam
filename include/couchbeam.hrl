@@ -17,6 +17,8 @@
 -type header() :: {string() | atom(), string()}.
 -type headers() :: [header()].
 
+-define(COUCHBEAM_VERSION, "0.5").
+
 -record(couchdb_params, {
     url         = "http://127.0.0.1:5984/" :: string(),
     username    = nil :: string(),
@@ -32,7 +34,9 @@
     headers,
     params,
     body=nil,
-    options,
+    options=[
+        {response_format,binary}
+    ],
     conn=nil,
     retries=2
 }).
