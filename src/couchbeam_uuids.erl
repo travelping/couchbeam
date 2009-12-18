@@ -53,18 +53,18 @@ init({CouchdbParams, Base}) ->
     {ok, State}.
     
     
-handle_call({uuids, Count}, _From, #uuids{couchdb=C, base=Base}=State) ->
-    Uuids = case couchbeam_resource:get(C, Base ++ "_uuids", [], 
+handle_call({uuids, Count}, _From, #uuids{couchdb=C}=State) ->
+    Uuids = case couchbeam_resource:get(C, "_uuids", [], 
                             [{"count", couchbeam_util:val(Count)}], []) of
         {ok, {[{<<"uuids">>, Uuids1}]}} -> Uuids1;
         {error, Reason} -> Reason
     end,
     {reply, Uuids, State};
     
-handle_call(next_uuid, _From, #uuids{couchdb=C, base=Base, tid=UuidsTid} = State) ->
+handle_call(next_uuid, _From, #uuids{couchdb=C, tid=UuidsTid} = State) ->
     Uuid = case ets:lookup(UuidsTid, uuids) of
-        [] -> new_uuids(C, Base, UuidsTid);
-        [{_, []}] -> new_uuids(C, Base, UuidsTid);
+        [] -> new_uuids(C, UuidsTid);
+        [{_, []}] -> new_uuids(C, UuidsTid);
         [{_, [Id2|Uuids]}] ->
             true = ets:insert(UuidsTid, {uuids, Uuids}),
             binary_to_list(Id2)
@@ -87,8 +87,8 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 %% @private
-new_uuids(CouchdbParams, Base, UuidsTid) ->
-    Uuid = case couchbeam_resource:get(CouchdbParams, Base ++ "_uuids", [], 
+new_uuids(CouchdbParams, UuidsTid) ->
+    Uuid = case couchbeam_resource:get(CouchdbParams, "_uuids", [], 
                             [{"count", "1000"}], []) of
         {ok, {[{<<"uuids">>, [Id|Uuids1]}]}} -> 
             ets:insert(UuidsTid, {uuids, Uuids1}),

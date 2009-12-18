@@ -254,7 +254,8 @@ handle_call({open_doc, DocId, Params}, _From, #db{couchdb=C, name=DbName} = Stat
     end,
     {reply, Doc, State};
     
-handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C, 
+handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState,
+                                                couchdb=C, 
                                                 name=DbName} = State) ->
     {Props} = Doc,
     DocId = case proplists:get_value(<<"_id">>, Props) of
@@ -267,11 +268,10 @@ handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C,
     Body = couchbeam:json_encode(Doc),
     Resp = case couchbeam_resource:put(C, Path, [], Params, Body, []) of
         {ok, {Props1}} ->
-            NewRev = proplists:get_value(<<"rev">>, Props1),
-            DocId1 = proplists:get_value(<<"id">>, Props1),
-            Doc1 = couchbeam_doc:set_value(<<"_id">>, DocId1, Doc),
-            Doc2 = couchbeam_doc:set_value(<<"_rev">>, NewRev, Doc1),
-            Doc2;
+            couchbeam_doc:extend([
+                {<<"_id">>, proplists:get_value(<<"id">>, Props1)}, 
+                {<<"_rev">>, proplists:get_value(<<"rev">>, Props1)}
+            ], Doc);
         {error, Reason} ->
             Reason
     end,
@@ -323,11 +323,10 @@ handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From,
         {error, Reason} -> Reason;
         {ok, R} when (IsJson =:= true) ->
              {Props} = R,
-             NewRev = proplists:get_value(<<"rev">>, Props),
-             DocId2 = proplists:get_value(<<"id">>, Props),
-             Doc1 = couchbeam_doc:set_value(<<"_id">>, DocId2, Doc),
-             Doc2 = couchbeam_doc:set_value(<<"_rev">>, NewRev, Doc1),
-             Doc2;
+             couchbeam_doc:extend([
+                 {<<"_id">>, proplists:get_value(<<"id">>, Props)}, 
+                 {<<"_rev">>, proplists:get_value(<<"rev">>, Props)}
+             ], Doc);
         {ok, R} ->  R
     end,
     {reply, Resp, State};
@@ -345,11 +344,10 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, name=DbName}=
         {error, Reason} -> Reason;
         {ok, R} when (IsJson =:= true) ->
              {Props} = R,
-             NewRev = proplists:get_value(<<"rev">>, Props),
-             DocId2 = proplists:get_value(<<"id">>, Props),
-             Doc1 = couchbeam_doc:set_value(<<"_id">>, DocId2, Doc),
-             Doc2 = couchbeam_doc:set_value(<<"_rev">>, NewRev, Doc1),
-             Doc2;
+             couchbeam_doc:extend([
+                  {<<"_id">>, proplists:get_value(<<"id">>, Props)}, 
+                  {<<"_rev">>, proplists:get_value(<<"rev">>, Props)}
+              ], Doc);
         {ok, R} ->  R
     end,
     {reply, Resp, State};
