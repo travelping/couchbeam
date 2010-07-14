@@ -23,7 +23,7 @@
 <body>
   <div id="container">
   <header id="mainhead">
-    <h1><a href="index.html">Couchbeam 0.4.1</a></h1>
+    <h1><a href="index.html">Couchbeam 0.4.3</a></h1>
     <p id="download">get the source in <a href="http://github.com/benoitc/couchbeam">git</a> or <a href="http://bitbucket.org/benoitc/couchbeam">hg</a>, then <a href="http://github.com/benoitc/couchbeam/issues">send feedback</a></p>
     
   </header>
@@ -32,7 +32,18 @@
     <h1>Changelog</h1>
 
     <p>This is the changelog of couchbeam.</p>
-    
+    <article class="change" id="v05">
+      <header>
+        <h2>0.4.3  - <time datetime="2009-11-22">July, 14, 2010</time></h2>
+      </header>
+      <ul>
+        <li>New build system using <a href="http://dizzyd.com/blog/post/194">rebar</a></li>
+        <li>Added R14a support</li>
+        <li>Fix tests</li>
+        <li>Fix issue #29, make sure change line is handled in change consumer</li>
+        <li>Fix issue #28, make sure ID is a binary when we need to create it for a new doc.</li>
+      </ul>
+    </article>
     <article class="change" id="v04">
         <header>
           <h2>0.4.1 - <time datetime="2009-11-22">November, 22, 2009</time></h2>
@@ -119,7 +130,7 @@
   </section>
   
   <footer>
-    <p>2009 &copy; <a href="http://benoitc.im">Benoît Chesneau</a> - Some rights resenved</p>
+    <p>2009-2010 &copy; <a href="http://benoitc.im">Benoît Chesneau</a> - Some rights resenved</p>
   </footer>
   </div>
 </body>
