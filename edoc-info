@@ -1,0 +1,5 @@
+{application,couchbeam}.
+{packages,[]}.
+{modules,[couchbeam,couchbeam_app,couchbeam_attachments,couchbeam_changes,
+          couchbeam_deps,couchbeam_doc,couchbeam_sup,couchbeam_util,
+          couchbeam_view]}.

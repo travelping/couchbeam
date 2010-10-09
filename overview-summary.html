@@ -1,0 +1,276 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Couchbeam - simple erlang CouchDB framework.</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<h1>Couchbeam - simple erlang CouchDB framework.</h1>
+<p>Copyright © 2009-2010 (c) Benoit Chesneau &lt;benoitc@e-engura.org&gt;
+</p>
+<p>couchbeam is a simple erlang <a href="http://couchdb.apache.org">CouchDB</a> framework. 
+couchbeam provides you a full featured and easy client to access and manage multiple
+couchdb Nodes. Useful modules are:</p>
+
+<dl>
+    <dt><a href="couchbeam.html"><code>couchbeam</code></a></dt>
+    <dd>The <code>couchbeam</code> module is the main interface for interaction
+    with this application. It includes functions for managing
+connections to CouchDB servers and Couchdb Databases and for performings
+documents creations, updates, deletes, views...</dd>
+
+    <dt><a href="couchbeam_doc.html"><code>couchbeam_doc</code></a></dt>
+    <dd>Module to manipulate Documents structures. You can set values,
+updates keys, ..</dd>
+
+    <dt><a href="couchbeam_attachments.html"><code>couchbeam_attachments</code></a></dt>
+    <dd>Module to manipulate attachments. You can add, remove
+attachments in a Document structure (inline attachments).</dd>
+    
+    <dt><a href="couchbeam_view.html"><code>couchbeam_view</code></a></dt>
+    <dd>Module to manage view results you get from <code>couchbeam:view</code> and
+<code>couchbeam:all_docs</code> functions. You can count results, fetch all, get
+the first result of a view, fold between them or execute a function on
+each rows.</dd>
+</dl>
+
+
+<p>The goal of couchbeam is to give all access to CouchDB &gt;0.10 API via
+HTTP in erlang. </p>
+
+<h2>Installation</h2>
+
+<p>Download the sources from our <a href="http://github.com/benoitc/couchbeam">Github repository</a>.</p>
+
+<p>To buildd the application simply run 'make'. This should build .beam, .app
+files and documentation.</p>
+
+<p>To run tests run 'make test'.
+To generate doc, run 'make doc'.</p>
+
+<h2>Basic Usage</h2>
+
+<p>The basic pattern of use of couchbeam is:</p>
+
+<h3>1. Start couchbeam</h3>
+
+<p>Couchbeam is an <a href="http://www.erlang.org/doc/design_principles/users_guide.html">OTP</a>
+application. You have to start it firsr before using all the functions.
+couchbeam applications will manage for you connections to CouchDB via
+ibrowse and will maintain a collections of unique ids from CouchDB to
+reduce the number of HTTP connections.</p>
+
+<pre>application:start(couchbeam).</pre>
+
+<h3>2. Create a connection to the server</h3>
+
+<p>To create a connection to a server machine:</p>
+
+<pre>Host = "localhost",
+Port = 5984,
+Prefix = "",
+Options = [],
+S = couchbeam:server_connection(Host, Port, Prefix, Options).</pre>
+
+<p>Test the connection with <a href="couchbeam.html#server_info-1"><code>couchbeam:server_info/1</code></a>:</p>
+
+<pre>{ok, _Version} = couchbeam:server_info(S).</pre>
+
+<h3>3. Open or Create a database</h3>
+
+<p>All CouchDB document operations are done in databases. To open a
+database simply do:</p>
+
+<pre>Options = [],
+{ok, Db} = couchbeam:open_db(Server, "testdb", Options).</pre>
+
+<p>To create a new one :</p>
+
+<pre>Options = [],
+{ok, Db} = couchbeam:open_db(Server, "testdb", Options).</pre>
+
+<p>You can also use the shorcut <a href="couchbeam.html#open_or_create_db-3"><code>couchbeam:open_or_create_db/3</code></a> that
+will create a database if it doesn't exist.</p>
+
+<h3>4. Make a new document</h3>
+
+<p>Make a new document:</p>
+
+<pre>Doc = {[
+{&lt;&lt;"_id"&gt;&gt;, &lt;&lt;"test"&gt;&gt;},
+{&lt;&lt;"content"&gt;&gt;, &lt;&lt;"some text"&gt;&gt;}
+]}.</pre>
+
+<p>And save it to the database:</p>
+
+<pre>{ok, Doc1} = couchbeam:save_doc(Db, Doc).</pre>
+
+<p>The <a href="couchbeam.html#save_doc-2"><code>couchbeam:save_doc/2</code></a> return a new document with updated
+revision and if you don't specify the _id, a unique document id.</p>
+
+<p>To change an document property use functions from <a href="couchbeam_doc.html"><code>couchbeam_doc</code></a>.</p>
+
+<h3>5. Retrieve a document</h3>
+
+<p>To retrieve a document do:</p>
+
+<pre>{ok, Doc2} = couchbeam:open_doc(Db, "test").</pre>
+
+<p>If you want a specific revision:</p>
+
+<pre>Rev = couchbeam_doc:get_rev(Doc1),
+Options = [{rev, Rev}],
+{ok, Doc3} = couchbeam:open_doc(Db, "test", Options).</pre>
+
+<p>Here we get the revision from the document we previously stored. Any
+options from the CouchDB API can be used.</p>
+
+
+<h3>6. Get all documents</h3>
+
+<p>To get all documents you have first to create an object
+that will keep all informations.</p>
+
+<pre>Options = [{include_docs, "true"}],
+{ok, AllDocs} = couchbeam:all_docs(Db, Options).</pre>
+
+<p>You can pass any parameters from the API in the Options 
+Then if you want to retrieve all documents.</p>
+
+<pre>{ok, Results} = couchbeam_view:fetch(AllDocs).</pre>
+
+<p>Ex of results:</p>
+
+<pre>{ok,{[{&lt;&lt;"total_rows"&gt;&gt;,4},
+      {&lt;&lt;"offset"&gt;&gt;,0},
+      {&lt;&lt;"rows"&gt;&gt;,
+       [{[{&lt;&lt;"id"&gt;&gt;,&lt;&lt;"7a0ce91d0d0c5e5b51e904d1ee3266a3"&gt;&gt;},
+          {&lt;&lt;"key"&gt;&gt;,&lt;&lt;"7a0ce91d0d0c5e5b51e904d1ee3266a3"&gt;&gt;},
+          {&lt;&lt;"value"&gt;&gt;,
+           {[{&lt;&lt;"rev"&gt;&gt;,&lt;&lt;"15-15c0b3c4efa74f9a80d28ac040f18bdb"&gt;&gt;}]}},
+          {&lt;&lt;"doc"&gt;&gt;,
+           {[{&lt;&lt;"_id"&gt;&gt;,&lt;&lt;"7a0ce91d0d0c5e5b51e904d1ee3266a3"&gt;&gt;},
+             {&lt;&lt;"_rev"&gt;&gt;,&lt;&lt;"15-15c0b3c4efa74f9a80d28ac040f18"...&gt;&gt;}]}}]},
+        ]}]}}.</pre>
+
+<p>If you want to fold rows in a fun :</p>
+
+<pre>Fun = fun(Row, AttIn) -&gt; [Row|AttIn] end,
+Att = couchbeam_view:fold(AllDocs, Fun).</pre>
+
+<p>All functions to manipulate these results are in <a href="couchbeam_view.html"><code>couchbeam_view</code></a>
+module.</p>
+
+<h3>7. Couchdb views - Map/Reduce</h3>
+
+<p>Views are workin like all_docs. You have to create a View object before
+doing anything.</p>
+
+<pre>Options = [],
+DesignNam = "designname",
+ViewName = "viewname",
+{ok, View} = couchbeam:view(Db, {DesignNam, ViewName}, Options).</pre>
+
+<p>As a convenience, you can replace the tupple by a string
+"designname/viewname". Like the <code>all_docs</code> function, use the functions
+from <a href="couchbeam_view.html"><code>couchbeam_view</code></a> module to manipulate results. You can pass
+any querying options from the <a href="http://wiki.apache.org/couchdb/HTTP_view_API">view API</a>.</p>
+
+<p>Design doc are created like any documents:</p>
+
+<pre>DesignDoc = {[
+        {&lt;&lt;"_id"&gt;&gt;, &lt;&lt;"_design/couchbeam"&gt;&gt;},
+        {&lt;&lt;"language"&gt;&gt;,&lt;&lt;"javascript"&gt;&gt;},
+        {&lt;&lt;"views"&gt;&gt;,
+            {[{&lt;&lt;"test"&gt;&gt;,
+                {[{&lt;&lt;"map"&gt;&gt;,
+                    &lt;&lt;"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}"&gt;&gt;
+                }]}
+            },{&lt;&lt;"test2"&gt;&gt;,
+                {[{&lt;&lt;"map"&gt;&gt;,
+                    &lt;&lt;"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}"&gt;&gt;
+                }]}
+            }]}
+        }
+    ]},
+{ok, DesignDoc1} = couchbeam:save_doc(Db, DesignDoc).</pre>
+
+<p>You can also use <a href="http://github.com/couchapp/couchapp">couchapp</a> to manage them
+more easily.</p>
+
+<h3>8. Put,Fetch and Delete documents attachments</h3>
+
+<p>You can add attachments to any CouchDB documents. Attachments could be
+anything.</p>
+
+<p>To send an attachment:</p>
+
+<pre>DocID = "test",
+AttName = "test.txt",
+Att = "some content I want to attach",
+Options = []
+{ok, _Result} = couchbeam:put_attachment(Db, DocId, AttName, Att, Options).</pre>
+
+<p>All attachments are streamed to CoucDB. <code>Att</code> could be also be an iolist
+or functions, see <a href="couchbeam.html#put_attachment-5"><code>couchbeam:put_attachment/5</code></a> for more
+informations.</p>
+
+<p>To fetch an attachment:</p>
+
+<pre>{ok Att1} = couchbeam:fetch_attachment(Db, DocId, AttName).</pre>
+
+<p>You can use <a href="couchbeam.html#stream_fetch_attachment-6"><code>couchbeam:stream_fetch_attachment/6</code></a> for the stream
+fetch.</p>
+
+<p>To delete an attachment:</p>
+
+<pre>{ok, Doc4} = couchbeam:open_doc(Db, DocID),
+ok = couchbeam:delete_attachment(Db, Doc4, AttName).</pre>
+
+<h3>9. Changes</h3>
+
+<p>CouchDB provides a means to get a list of changes made to documents in
+the database. With couchbeam you can get changes using <a href="couchbeam.html#changes-2"><code>couchbeam:changes/2</code></a>. 
+This function returns all changes immediately. But you can also retrieve
+all changes using longpolling :</p>
+
+<pre>Options = [],
+{ok, Changes} = couchbeam:changes_wait_once(Db, Options).</pre>
+
+<p>Options can be any Changes query parameters. See
+<a href="http://wiki.apache.org/couchdb/HTTP_database_API#Changes" target="_top"><tt>http://wiki.apache.org/couchdb/HTTP_database_API#Changes</tt></a> for more
+informations.</p>
+
+<p>You can also get <a href="http://wiki.apache.org/couchdb/HTTP_database_API#Continuous_.28Non-Polling.29_Feed">continuous</a> changes:</p>
+
+<pre>ChangesFun = fun(ReqId, F) -&gt;
+    receive
+        {ReqId, done} -&gt;
+            ok;
+        {ReqId, {change, Change}} -&gt;
+            io:format("change ~p ~n", [Change]),
+            F(ReqId, F);    
+        {ReqId, {error, E}}-&gt;
+            io:format("error ? ~p ~n", [E])
+    end
+end,
+Pid = self(),
+Options = [{heartbeat, "true"}],
+{ok, ReqId} = couchbeam:changes_wait(Db, Pid, Options),
+ChangesFun(ReqId, ChangesFun).</pre>
+
+<h2>Get involved</h2>
+
+<p>If you have any question don't hesitate to join us on <a href="http://webchat.freenode.net/?channels=couchdbkit">#couchdbkit IRC
+channel</a> or on the <a href="http://groups.google.com/group/couchdbkit">mailing-list</a>.</p>
+
+<p>Report bugs and make feature requests on the <a href="http://github.com/benoitc/couchbeam/issues">ticket system</a>.</p>
+
+
+
+<hr>
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc, Oct 9 2010, 12:13:33.</i></p>
+</body>
+</html>
