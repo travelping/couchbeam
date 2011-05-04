@@ -13,25 +13,34 @@
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#encode_docid-1">encode_docid/1</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#encode_att_name-1">encode_att_name/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#encode_docid-1">encode_docid/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#encode_query-1">encode_query/1</a></td><td>Encode needed value of Query proplists in json.</td></tr>
 <tr><td valign="top"><a href="#encode_query_value-2">encode_query_value/2</a></td><td>Encode value in JSON if needed depending on the key.</td></tr>
-<tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td>emulate proplists:get_value/2,3 but use faster lists:keyfind/3.</td></tr>
 <tr><td valign="top"><a href="#get_value-3">get_value/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#json_decode-1">json_decode/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#json_encode-1">json_encode/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#guess_mime-1">guess_mime/1</a></td><td> Guess the mime type of a file by the extension of its filename.</td></tr>
 <tr><td valign="top"><a href="#oauth_header-3">oauth_header/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#parse_options-1">parse_options/1</a></td><td>make view options a list.</td></tr>
 <tr><td valign="top"><a href="#parse_options-2">parse_options/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#parse_qs-1">parse_qs/1</a></td><td>Parse a query string or application/x-www-form-urlencoded.</td></tr>
 <tr><td valign="top"><a href="#propmerge-3">propmerge/3</a></td><td>merge 2 proplists.</td></tr>
 <tr><td valign="top"><a href="#propmerge1-2">propmerge1/2</a></td><td>Update a proplist with values of the second.</td></tr>
+<tr><td valign="top"><a href="#quote_plus-1">quote_plus/1</a></td><td>URL safe encoding of the given term.</td></tr>
 <tr><td valign="top"><a href="#to_atom-1">to_atom/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#to_binary-1">to_binary/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#to_integer-1">to_integer/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#to_list-1">to_list/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#urlencode-1">urlencode/1</a></td><td>URL encode the property list.</td></tr>
+<tr><td valign="top"><a href="#urlsplit-1">urlsplit/1</a></td><td>Return a 5-tuple, does not expand % escapes.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="encode_att_name-1">encode_att_name/1</a></h3>
+<div class="spec">
+<p><tt>encode_att_name(Name) -&gt; any()</tt></p>
+</div>
 
 <h3 class="function"><a name="encode_docid-1">encode_docid/1</a></h3>
 <div class="spec">
@@ -50,23 +59,18 @@
 
 <h3 class="function"><a name="get_value-2">get_value/2</a></h3>
 <div class="spec">
-<p><tt>get_value(Key, List) -&gt; any()</tt></p>
-</div>
+<p><tt>get_value(Key::term(), Prop::[term()]) -&gt; term()</tt><br></p>
+</div><p>emulate proplists:get_value/2,3 but use faster lists:keyfind/3</p>
 
 <h3 class="function"><a name="get_value-3">get_value/3</a></h3>
 <div class="spec">
-<p><tt>get_value(Key, List, Default) -&gt; any()</tt></p>
+<p><tt>get_value(Key::term(), Prop::[term()], Default::term()) -&gt; term()</tt><br></p>
 </div>
 
-<h3 class="function"><a name="json_decode-1">json_decode/1</a></h3>
+<h3 class="function"><a name="guess_mime-1">guess_mime/1</a></h3>
 <div class="spec">
-<p><tt>json_decode(V) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="json_encode-1">json_encode/1</a></h3>
-<div class="spec">
-<p><tt>json_encode(V) -&gt; any()</tt></p>
-</div>
+<p><tt>guess_mime(File::string()) -&gt; string()</tt><br></p>
+</div><p> Guess the mime type of a file by the extension of its filename.</p>
 
 <h3 class="function"><a name="oauth_header-3">oauth_header/3</a></h3>
 <div class="spec">
@@ -83,6 +87,11 @@
 <p><tt>parse_options(Rest, Acc) -&gt; any()</tt></p>
 </div>
 
+<h3 class="function"><a name="parse_qs-1">parse_qs/1</a></h3>
+<div class="spec">
+<p><tt>parse_qs(Binary::string() | binary()) -&gt; [{Key, Value}]</tt><br></p>
+</div><p>Parse a query string or application/x-www-form-urlencoded.</p>
+
 <h3 class="function"><a name="propmerge-3">propmerge/3</a></h3>
 <div class="spec">
 <p><tt>propmerge(F, L1, L2) -&gt; any()</tt></p>
@@ -96,6 +105,11 @@
 <p><tt>propmerge1(L1, L2) -&gt; any()</tt></p>
 </div><p>Update a proplist with values of the second. In case the same
   key is in 2 proplists, the value from the first are kept.</p>
+
+<h3 class="function"><a name="quote_plus-1">quote_plus/1</a></h3>
+<div class="spec">
+<p><tt>quote_plus(Atom::atom() | integer() | float() | string() | binary()) -&gt; string()</tt><br></p>
+</div><p>URL safe encoding of the given term.</p>
 
 <h3 class="function"><a name="to_atom-1">to_atom/1</a></h3>
 <div class="spec">
@@ -116,9 +130,20 @@
 <div class="spec">
 <p><tt>to_list(V) -&gt; any()</tt></p>
 </div>
+
+<h3 class="function"><a name="urlencode-1">urlencode/1</a></h3>
+<div class="spec">
+<p><tt>urlencode(Props::[{Key, Value}]) -&gt; string()</tt><br></p>
+</div><p>URL encode the property list.</p>
+
+<h3 class="function"><a name="urlsplit-1">urlsplit/1</a></h3>
+<div class="spec">
+<p><tt>urlsplit(Url) -&gt; {Scheme, Netloc, Path, Query, Fragment}</tt><br></p>
+</div><p>Return a 5-tuple, does not expand % escapes. Only supports HTTP style
+       URLs.</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Feb 11 2011, 12:09:06.</i></p>
+<p><i>Generated by EDoc, May 4 2011, 10:24:41.</i></p>
 </body>
 </html>

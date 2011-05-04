@@ -42,9 +42,15 @@
 <tr><td valign="top"><a href="#delete_db-1">delete_db/1</a></td><td>delete database.</td></tr>
 <tr><td valign="top"><a href="#delete_db-2">delete_db/2</a></td><td>delete database.</td></tr>
 <tr><td valign="top"><a href="#delete_doc-2">delete_doc/2</a></td><td>delete a document.</td></tr>
-<tr><td valign="top"><a href="#delete_doc-3">delete_doc/3</a></td><td>delete a document.</td></tr>
+<tr><td valign="top"><a href="#delete_doc-3">delete_doc/3</a></td><td>delete a document
+  if you want to make sure the doc it emptied on delete, use the option
+  {empty_on_delete,  true} or pass a doc with just _id and _rev
+  members.</td></tr>
 <tr><td valign="top"><a href="#delete_docs-2">delete_docs/2</a></td><td>delete a list of documents.</td></tr>
-<tr><td valign="top"><a href="#delete_docs-3">delete_docs/3</a></td><td>delete a list of documents.</td></tr>
+<tr><td valign="top"><a href="#delete_docs-3">delete_docs/3</a></td><td>delete a list of documents
+  if you want to make sure the doc it emptied on delete, use the option
+  {empty_on_delete,  true} or pass a doc with just _id and _rev
+  members.</td></tr>
 <tr><td valign="top"><a href="#doc_exists-2">doc_exists/2</a></td><td>test if doc with uuid exists in the given db.</td></tr>
 <tr><td valign="top"><a href="#doc_url-2">doc_url/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#ensure_full_commit-1">ensure_full_commit/1</a></td><td>commit all docs in memory.</td></tr>
@@ -57,6 +63,8 @@
 <tr><td valign="top"><a href="#handle_call-3">handle_call/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#handle_cast-2">handle_cast/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#handle_info-2">handle_info/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#lookup_doc_rev-2">lookup_doc_rev/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#lookup_doc_rev-3">lookup_doc_rev/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#make_url-3">make_url/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#maybe_oauth_header-4">maybe_oauth_header/4</a></td><td></td></tr>
 <tr><td valign="top"><a href="#open_db-2">open_db/2</a></td><td>Create a client for connection to a database.</td></tr>
@@ -108,7 +116,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="all_dbs-1">all_dbs/1</a></h3>
 <div class="spec">
-<p><tt>all_dbs(Server::<a href="#type-server">server()</a>) -&gt; {ok, <a href="#type-iolist">iolist()</a>}</tt></p>
+<p><tt>all_dbs(Server::<a href="#type-server">server()</a>) -&gt; {ok, iolist()}</tt><br></p>
 </div><p>get list of databases on a CouchDB node</p>
 
 <h3 class="function"><a name="all_docs-1">all_docs/1</a></h3>
@@ -119,7 +127,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="all_docs-2">all_docs/2</a></h3>
 <div class="spec">
-<p><tt>all_docs(Db::<a href="#type-db">db()</a>, Options::list()) -&gt; {ok, View::<a href="#type-view">view()</a>} | {error, term()}</tt></p>
+<p><tt>all_docs(Db::<a href="#type-db">db()</a>, Options::list()) -&gt; {ok, View::<a href="#type-view">view()</a>} | {error, term()}</tt><br></p>
 </div><p>get all documents from a CouchDB database. It return a
   #view{} record that you can use with couchbeam_view functions:
   <ul>
@@ -142,9 +150,7 @@ A document is a Json object like this one:.</td></tr>
 <h3 class="function"><a name="changes-2">changes/2</a></h3>
 <div class="spec">
 <p><tt>changes(Db::<a href="#type-db">db()</a>, Options::<a href="#type-changesoptions">changesoptions()</a>) -&gt; term()</tt>
-<ul class="definitions"><li><tt><a name="type-changesoptions">changesoptions()</a> = [<a href="#type-changeoption">changeoption()</a>]</tt></li>
-<li><tt><a name="type-changeoption">changeoption()</a> = {include_docs, string()} | {filter, string()} | {since, integer() | string()} | {heartbeat, string() | <a href="#type-boolean">boolean()</a>}</tt></li>
-</ul></p>
+<ul class="definitions"><li><tt><a name="type-changesoptions">changesoptions()</a> = [<a href="#type-changeoption">changeoption()</a>]</tt></li><li><tt><a name="type-changeoption">changeoption()</a> = {include_docs, string()} | {filter, string()} | {since, integer() | string()} | {heartbeat, string() | boolean()}</tt></li></ul></p>
 </div><p>get all changes. Do not use this function for longpolling,
        instead use  <pre>  changes_wait_once</pre> or continuous, use
        <pre>          wait_once</pre>
@@ -159,7 +165,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="changes_wait-3">changes_wait/3</a></h3>
 <div class="spec">
-<p><tt>changes_wait(Db::<a href="#type-db">db()</a>, Pid::pid(), Options::<a href="#type-changeoptions">changeoptions()</a>) -&gt; term()</tt></p>
+<p><tt>changes_wait(Db::<a href="#type-db">db()</a>, Pid::pid(), Options::<a href="#type-changeoptions">changeoptions()</a>) -&gt; term()</tt><br></p>
 </div><p>wait for continuous changes to a Pid. Messages sent to the Pid
        will be of the form <code>{reference(), message()}</code>,
        where <code>message()</code> is one of:
@@ -192,14 +198,14 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="compact-1">compact/1</a></h3>
 <div class="spec">
-<p><tt>compact(Db::<a href="#type-db">db()</a>) -&gt; ok | {error, term()}</tt></p>
+<p><tt>compact(Db::<a href="#type-db">db()</a>) -&gt; ok | {error, term()}</tt><br></p>
 </div><p>Compaction compresses the database file by removing unused
   sections created during updates.
   See <a href="http://wiki.apache.org/couchdb/Compaction" target="_top"><tt>http://wiki.apache.org/couchdb/Compaction</tt></a> for more informations</p>
 
 <h3 class="function"><a name="compact-2">compact/2</a></h3>
 <div class="spec">
-<p><tt>compact(Db::<a href="#type-db">db()</a>, ViewName::string()) -&gt; ok | {error, term()}</tt></p>
+<p><tt>compact(Db::<a href="#type-db">db()</a>, ViewName::string()) -&gt; ok | {error, term()}</tt><br></p>
 </div><p>Like compact/1 but this compacts the view index from the
   current version of the design document.
   See <a href="http://wiki.apache.org/couchdb/Compaction#View_compaction" target="_top"><tt>http://wiki.apache.org/couchdb/Compaction#View_compaction</tt></a> for more informations</p>
@@ -218,7 +224,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="create_db-4">create_db/4</a></h3>
 <div class="spec">
-<p><tt>create_db(Server::<a href="#type-server">server()</a>, DbName::string(), Options::<a href="#type-optionList">optionList()</a>, Params::list()) -&gt; {ok, <a href="#type-db">db()</a> | {error, Error}}</tt></p>
+<p><tt>create_db(Server::<a href="#type-server">server()</a>, DbName::string(), Options::<a href="#type-optionList">optionList()</a>, Params::list()) -&gt; {ok, <a href="#type-db">db()</a> | {error, Error}}</tt><br></p>
 </div><p><p>Create a database and a client for connectiong to it.</p>
  
        Connections are made to:
@@ -231,12 +237,12 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="db_exists-2">db_exists/2</a></h3>
 <div class="spec">
-<p><tt>db_exists(Server::<a href="#type-server">server()</a>, DbName::string()) -&gt; <a href="#type-boolean">boolean()</a></tt></p>
+<p><tt>db_exists(Server::<a href="#type-server">server()</a>, DbName::string()) -&gt; boolean()</tt><br></p>
 </div><p>test if db with dbname exists on the CouchDB node</p>
 
 <h3 class="function"><a name="db_info-1">db_info/1</a></h3>
 <div class="spec">
-<p><tt>db_info(Db::<a href="#type-db">db()</a>) -&gt; {ok, <a href="#type-iolist">iolist()</a> | {error, Error}}</tt></p>
+<p><tt>db_info(Db::<a href="#type-db">db()</a>) -&gt; {ok, iolist() | {error, Error}}</tt><br></p>
 </div><p>get database info</p>
 
 <h3 class="function"><a name="db_request-4">db_request/4</a></h3>
@@ -278,7 +284,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="delete_db-2">delete_db/2</a></h3>
 <div class="spec">
-<p><tt>delete_db(Server::<a href="#type-server">server()</a>, DbName) -&gt; {ok, <a href="#type-iolist">iolist()</a> | {error, Error}}</tt></p>
+<p><tt>delete_db(Server::<a href="#type-server">server()</a>, DbName) -&gt; {ok, iolist() | {error, Error}}</tt><br></p>
 </div><p>delete database</p>
 
 <h3 class="function"><a name="delete_doc-2">delete_doc/2</a></h3>
@@ -289,8 +295,11 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="delete_doc-3">delete_doc/3</a></h3>
 <div class="spec">
-<p><tt>delete_doc(Db, Doc, Options) -&gt; {ok, Result} | {error, Error}</tt></p>
-</div><p>delete a document</p>
+<p><tt>delete_doc(Db, Doc, Options) -&gt; {ok, Result} | {error, Error}</tt><br></p>
+</div><p>delete a document
+  if you want to make sure the doc it emptied on delete, use the option
+  {empty_on_delete,  true} or pass a doc with just _id and _rev
+  members.</p>
 
 <h3 class="function"><a name="delete_docs-2">delete_docs/2</a></h3>
 <div class="spec">
@@ -300,12 +309,15 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="delete_docs-3">delete_docs/3</a></h3>
 <div class="spec">
-<p><tt>delete_docs(Db::<a href="#type-db">db()</a>, Docs::list(), Options::list()) -&gt; {ok, Result} | {error, Error}</tt></p>
-</div><p>delete a list of documents</p>
+<p><tt>delete_docs(Db::<a href="#type-db">db()</a>, Docs::list(), Options::list()) -&gt; {ok, Result} | {error, Error}</tt><br></p>
+</div><p>delete a list of documents
+  if you want to make sure the doc it emptied on delete, use the option
+  {empty_on_delete,  true} or pass a doc with just _id and _rev
+  members.</p>
 
 <h3 class="function"><a name="doc_exists-2">doc_exists/2</a></h3>
 <div class="spec">
-<p><tt>doc_exists(Db::<a href="#type-db">db()</a>, DocId::string()) -&gt; <a href="#type-boolean">boolean()</a></tt></p>
+<p><tt>doc_exists(Db::<a href="#type-db">db()</a>, DocId::string()) -&gt; boolean()</tt><br></p>
 </div><p>test if doc with uuid exists in the given db</p>
 
 <h3 class="function"><a name="doc_url-2">doc_url/2</a></h3>
@@ -321,7 +333,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="ensure_full_commit-2">ensure_full_commit/2</a></h3>
 <div class="spec">
-<p><tt>ensure_full_commit(Db::<a href="#type-db">db()</a>, Options::list()) -&gt; {ok, term()} | {error, term()}</tt></p>
+<p><tt>ensure_full_commit(Db::<a href="#type-db">db()</a>, Options::list()) -&gt; {ok, term()} | {error, term()}</tt><br></p>
 </div><p>commit all docs in memory</p>
 
 <h3 class="function"><a name="fetch_attachment-3">fetch_attachment/3</a></h3>
@@ -339,17 +351,17 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="fetch_attachment-5">fetch_attachment/5</a></h3>
 <div class="spec">
-<p><tt>fetch_attachment(Db::<a href="#type-db">db()</a>, DocId::string(), Name::string(), Options::list(), Timeout::infinity | integer()) -&gt; {ok, binary()}</tt></p>
+<p><tt>fetch_attachment(Db::<a href="#type-db">db()</a>, DocId::string(), Name::string(), Options::list(), Timeout::infinity | integer()) -&gt; {ok, binary()}</tt><br></p>
 </div><p>fetch a document attachment</p>
 
 <h3 class="function"><a name="get_uuid-1">get_uuid/1</a></h3>
 <div class="spec">
-<p><tt>get_uuid(Server::<a href="#type-server">server()</a>) -&gt; <a href="#type-lists">lists()</a></tt></p>
+<p><tt>get_uuid(Server::<a href="#type-server">server()</a>) -&gt; <a href="#type-lists">lists()</a></tt><br></p>
 </div><p>Get one uuid from the server</p>
 
 <h3 class="function"><a name="get_uuids-2">get_uuids/2</a></h3>
 <div class="spec">
-<p><tt>get_uuids(Server::<a href="#type-server">server()</a>, Count::integer()) -&gt; <a href="#type-lists">lists()</a></tt></p>
+<p><tt>get_uuids(Server::<a href="#type-server">server()</a>, Count::integer()) -&gt; <a href="#type-lists">lists()</a></tt><br></p>
 </div><p>Get a list of uuids from the server</p>
 
 <h3 class="function"><a name="handle_call-3">handle_call/3</a></h3>
@@ -365,6 +377,16 @@ A document is a Json object like this one:.</td></tr>
 <h3 class="function"><a name="handle_info-2">handle_info/2</a></h3>
 <div class="spec">
 <p><tt>handle_info(Info, State) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="lookup_doc_rev-2">lookup_doc_rev/2</a></h3>
+<div class="spec">
+<p><tt>lookup_doc_rev(Db, DocId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="lookup_doc_rev-3">lookup_doc_rev/3</a></h3>
+<div class="spec">
+<p><tt>lookup_doc_rev(Db, DocId, Params) -&gt; any()</tt></p>
 </div>
 
 <h3 class="function"><a name="make_url-3">make_url/3</a></h3>
@@ -385,7 +407,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="open_db-3">open_db/3</a></h3>
 <div class="spec">
-<p><tt>open_db(Server::<a href="#type-server">server()</a>, DbName::string(), Options::<a href="#type-optionList">optionList()</a>) -&gt; {ok, <a href="#type-db">db()</a>}</tt></p>
+<p><tt>open_db(Server::<a href="#type-server">server()</a>, DbName::string(), Options::<a href="#type-optionList">optionList()</a>) -&gt; {ok, <a href="#type-db">db()</a>}</tt><br></p>
 </div><p>Create a client for connection to a database</p>
 
 <h3 class="function"><a name="open_doc-2">open_doc/2</a></h3>
@@ -396,7 +418,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="open_doc-3">open_doc/3</a></h3>
 <div class="spec">
-<p><tt>open_doc(Db::<a href="#type-db">db()</a>, DocId::string(), Params::list()) -&gt; {ok, Doc} | {error, Error}</tt></p>
+<p><tt>open_doc(Db::<a href="#type-db">db()</a>, DocId::string(), Params::list()) -&gt; {ok, Doc} | {error, Error}</tt><br></p>
 </div><p>open a document
   Params is a list of query argument. Have a look in CouchDb API</p>
 
@@ -416,7 +438,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="open_or_create_db-4">open_or_create_db/4</a></h3>
 <div class="spec">
-<p><tt>open_or_create_db(Server::<a href="#type-server">server()</a>, DbName::string(), Options::list(), Params::list()) -&gt; {ok, <a href="#type-db">db()</a> | {error, Error}}</tt></p>
+<p><tt>open_or_create_db(Server::<a href="#type-server">server()</a>, DbName::string(), Options::list(), Params::list()) -&gt; {ok, <a href="#type-db">db()</a> | {error, Error}}</tt><br></p>
 </div><p>Create a client for connecting to a database and create the
        database if needed.</p>
 
@@ -428,17 +450,13 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="put_attachment-5">put_attachment/5</a></h3>
 <div class="spec">
-<p><tt>put_attachment(Db::<a href="#type-db">db()</a>, DocId::string(), Name::string(), Body::<a href="#type-body">body()</a>, Option::<a href="#type-optionList">optionList()</a>) -&gt; {ok, <a href="#type-iolist">iolist()</a>}</tt>
-<ul class="definitions"><li><tt><a name="type-optionList">optionList()</a> = [<a href="#type-option">option()</a>]</tt></li>
-<li><tt><a name="type-option">option()</a> = {rev, string()} | {content_type, string()} | {content_length, string()}</tt></li>
-<li><tt><a name="type-body">body()</a> = [] | string() | binary() | <a href="#type-fun_arity_0">fun_arity_0()</a> | {<a href="#type-fun_arity_1">fun_arity_1()</a>, <a href="#type-initial_state">initial_state()</a>}</tt></li>
-<li><tt><a name="type-initial_state">initial_state()</a> = term()</tt></li>
-</ul></p>
+<p><tt>put_attachment(Db::<a href="#type-db">db()</a>, DocId::string(), Name::string(), Body::<a href="#type-body">body()</a>, Option::<a href="#type-optionList">optionList()</a>) -&gt; {ok, iolist()}</tt>
+<ul class="definitions"><li><tt><a name="type-optionList">optionList()</a> = [<a href="#type-option">option()</a>]</tt></li><li><tt><a name="type-option">option()</a> = {rev, string()} | {content_type, string()} | {content_length, string()}</tt></li><li><tt><a name="type-body">body()</a> = [] | string() | binary() | <a href="#type-fun_arity_0">fun_arity_0()</a> | {<a href="#type-fun_arity_1">fun_arity_1()</a>, <a href="#type-initial_state">initial_state()</a>}</tt></li><li><tt><a name="type-initial_state">initial_state()</a> = term()</tt></li></ul></p>
 </div><p>put an attachment</p>
 
 <h3 class="function"><a name="replicate-2">replicate/2</a></h3>
 <div class="spec">
-<p><tt>replicate(Server::<a href="#type-server">server()</a>, RepObj::{list()}) -&gt; {ok, Result} | {error, Error}</tt></p>
+<p><tt>replicate(Server::<a href="#type-server">server()</a>, RepObj::{list()}) -&gt; {ok, Result} | {error, Error}</tt><br></p>
 </div><p>Handle replication. Pass an object containting all informations
   It allows to pass for example an authentication info
   <pre>  RepObj = {[
@@ -451,7 +469,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="replicate-3">replicate/3</a></h3>
 <div class="spec">
-<p><tt>replicate(Server::<a href="#type-server">server()</a>, Source::string(), Target::<a href="#type-target">target()</a>) -&gt; {ok, Result} | {error, Error}</tt></p>
+<p><tt>replicate(Server::<a href="#type-server">server()</a>, Source::string(), Target::<a href="#type-target">target()</a>) -&gt; {ok, Result} | {error, Error}</tt><br></p>
 </div><p>Handle replication.</p>
 
 <h3 class="function"><a name="replicate-4">replicate/4</a></h3>
@@ -501,7 +519,7 @@ A document is a Json object like this one:.</td></tr>
 
 <h3 class="function"><a name="save_doc-3">save_doc/3</a></h3>
 <div class="spec">
-<p><tt>save_doc(Db::<a href="#type-db">db()</a>, Doc, Options::list()) -&gt; {ok, Doc1} | {error, Error}</tt></p>
+<p><tt>save_doc(Db::<a href="#type-db">db()</a>, Doc, Options::list()) -&gt; {ok, Doc1} | {error, Error}</tt><br></p>
 </div><p><p>save a document  
 A document is a Json object like this one:</p>
  
@@ -524,7 +542,7 @@ A document is a Json object like this one:</p>
 
 <h3 class="function"><a name="save_docs-3">save_docs/3</a></h3>
 <div class="spec">
-<p><tt>save_docs(Db::<a href="#type-db">db()</a>, Docs::list(), Options::list()) -&gt; {ok, Result} | {error, Error}</tt></p>
+<p><tt>save_docs(Db::<a href="#type-db">db()</a>, Docs::list(), Options::list()) -&gt; {ok, Result} | {error, Error}</tt><br></p>
 </div><p>save a list of documents</p>
 
 <h3 class="function"><a name="server_connection-0">server_connection/0</a></h3>
@@ -542,14 +560,7 @@ A document is a Json object like this one:</p>
 <h3 class="function"><a name="server_connection-4">server_connection/4</a></h3>
 <div class="spec">
 <p><tt>server_connection(Host::string(), Port::integer(), Prefix::string(), Options::<a href="#type-optionList">optionList()</a>) -&gt; Server::<a href="#type-server">server()</a></tt>
-<ul class="definitions"><li><tt><a name="type-optionList">optionList()</a> = [<a href="#type-option">option()</a>]</tt></li>
-<li><tt><a name="type-option">option()</a> = {is_ssl, <a href="#type-boolean">boolean()</a>} | {ssl_options, [SSLOpt]} | {pool_name, atom()} | {proxy_host, string()} | {proxy_port, integer()} | {proxy_user, string()} | {proxy_password, string()} | {basic_auth, {<a href="#type-username">username()</a>, <a href="#type-password">password()</a>}} | {cookie, string()} | {oauth, <a href="#type-oauthOptions">oauthOptions()</a>}</tt></li>
-<li><tt><a name="type-username">username()</a> = string()</tt></li>
-<li><tt><a name="type-password">password()</a> = string()</tt></li>
-<li><tt>SSLOpt = term()</tt></li>
-<li><tt><a name="type-oauthOptions">oauthOptions()</a> = [<a href="#type-oauth">oauth()</a>]</tt></li>
-<li><tt><a name="type-oauth">oauth()</a> = {consumer_key, string()} | {token, string()} | {token_secret, string()} | {consumer_secret, string()} | {signature_method, string()}</tt></li>
-</ul></p>
+<ul class="definitions"><li><tt><a name="type-optionList">optionList()</a> = [<a href="#type-option">option()</a>]</tt></li><li><tt><a name="type-option">option()</a> = {is_ssl, boolean()} | {ssl_options, [SSLOpt]} | {pool_name, atom()} | {proxy_host, string()} | {proxy_port, integer()} | {proxy_user, string()} | {proxy_password, string()} | {basic_auth, {<a href="#type-username">username()</a>, <a href="#type-password">password()</a>}} | {cookie, string()} | {oauth, <a href="#type-oauthOptions">oauthOptions()</a>}</tt></li><li><tt><a name="type-username">username()</a> = string()</tt></li><li><tt><a name="type-password">password()</a> = string()</tt></li><li><tt>SSLOpt = term()</tt></li><li><tt><a name="type-oauthOptions">oauthOptions()</a> = [<a href="#type-oauth">oauth()</a>]</tt></li><li><tt><a name="type-oauth">oauth()</a> = {consumer_key, string()} | {token, string()} | {token_secret, string()} | {consumer_secret, string()} | {signature_method, string()}</tt></li></ul></p>
 </div><p><p>Create a server for connectiong to a CouchDB node</p>
  
        Connections are made to:
@@ -562,12 +573,12 @@ A document is a Json object like this one:</p>
 
 <h3 class="function"><a name="server_info-1">server_info/1</a></h3>
 <div class="spec">
-<p><tt>server_info(Server::<a href="#type-server">server()</a>) -&gt; {ok, <a href="#type-iolist">iolist()</a>}</tt></p>
+<p><tt>server_info(Server::<a href="#type-server">server()</a>) -&gt; {ok, iolist()}</tt><br></p>
 </div><p>Get Information from the server</p>
 
 <h3 class="function"><a name="server_url-1">server_url/1</a></h3>
 <div class="spec">
-<p><tt>server_url(Server::{Host, Port}) -&gt; <a href="#type-iolist">iolist()</a></tt></p>
+<p><tt>server_url(Server::{Host, Port}) -&gt; iolist()</tt><br></p>
 </div><p>Assemble the server URL for the given client</p>
 
 <h3 class="function"><a name="start-0">start/0</a></h3>
@@ -577,7 +588,7 @@ A document is a Json object like this one:</p>
 
 <h3 class="function"><a name="start_link-0">start_link/0</a></h3>
 <div class="spec">
-<p><tt>start_link() -&gt; {ok, pid()}</tt></p>
+<p><tt>start_link() -&gt; {ok, pid()}</tt><br></p>
 </div><p>Starts the couchbeam process linked to the calling process. Usually
   invoked by the supervisor couchbeam_sup</p>
 
@@ -602,7 +613,7 @@ A document is a Json object like this one:</p>
 
 <h3 class="function"><a name="stream_fetch_attachment-6">stream_fetch_attachment/6</a></h3>
 <div class="spec">
-<p><tt>stream_fetch_attachment(Db::<a href="#type-db">db()</a>, DocId::string(), Name::string(), ClientPid::pid(), Options::list(), Timeout::integer()) -&gt; {ok, reference()} | {error, term()}</tt></p>
+<p><tt>stream_fetch_attachment(Db::<a href="#type-db">db()</a>, DocId::string(), Name::string(), ClientPid::pid(), Options::list(), Timeout::integer()) -&gt; {ok, reference()} | {error, term()}</tt><br></p>
 </div><p>stream fetch attachment to a Pid. Messages sent to the Pid
        will be of the form <code>{reference(), message()}</code>,
        where <code>message()</code> is one of:
@@ -628,8 +639,7 @@ A document is a Json object like this one:</p>
 <h3 class="function"><a name="version-0">version/0</a></h3>
 <div class="spec">
 <p><tt>version() -&gt; Version</tt>
-<ul class="definitions"><li><tt>Version = string()</tt></li>
-</ul></p>
+<ul class="definitions"><li><tt>Version = string()</tt></li></ul></p>
 </div><p>Return the version of the application.</p>
 
 <h3 class="function"><a name="view-2">view/2</a></h3>
@@ -640,7 +650,7 @@ A document is a Json object like this one:</p>
 
 <h3 class="function"><a name="view-3">view/3</a></h3>
 <div class="spec">
-<p><tt>view(Db::<a href="#type-db">db()</a>, ViewName::string(), Options::list()) -&gt; {ok, View::<a href="#type-view">view()</a>} | {error, term()}</tt></p>
+<p><tt>view(Db::<a href="#type-db">db()</a>, ViewName::string(), Options::list()) -&gt; {ok, View::<a href="#type-view">view()</a>} | {error, term()}</tt><br></p>
 </div><p><p>get view results from database. viewname is generally  
 a tupple like {DesignName::string(), ViewName::string()} or string  
 like "designname/viewname". It return a #view{} record  that you can use  
@@ -661,6 +671,6 @@ with couchbeam_view functions:</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Feb 11 2011, 12:09:06.</i></p>
+<p><i>Generated by EDoc, May 4 2011, 10:24:41.</i></p>
 </body>
 </html>
