@@ -39,7 +39,6 @@ stream_changes(#db{server=Server, options=IbrowseOpts}=Db,
     UserFun = fun
         (done) ->
             ClientPid ! {change, StartRef, done};
-
         (Row) ->
             ClientPid ! {change, StartRef, Row},
             Seq = couchbeam_doc:get_value(<<"seq">>, Row),
@@ -117,8 +116,8 @@ process_changes1(ReqId, ClientPid, Callback) ->
         ibrowse:stream_next(ReqId),
         {Data, fun() -> process_changes1(ReqId, ClientPid, Callback) end};
     {ibrowse_async_response_end, ReqId} ->
-        ClientPid ! http_response_end,
-        done    
+        ClientPid ! done,
+        done 
 end.
 
 
@@ -246,6 +245,18 @@ parse_changes_options([{filter, FilterName}|Rest], #changes_args{http_options=Op
     parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
 parse_changes_options([{filter, FilterName, FilterArgs}|Rest], #changes_args{http_options=Opts} = Args) ->
     Opts1 = [{"filter", FilterName}|Opts] ++ FilterArgs,
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{limit, Limit}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"limit", Limit}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([conflicts|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"conflicts", "true"}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{style, Style}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"style", Style}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([descending|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"descending", "true"}|Opts],
     parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
 parse_changes_options([_|Rest], Args) ->
     parse_changes_options(Rest, Args).
