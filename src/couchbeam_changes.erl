@@ -6,12 +6,250 @@
 -module(couchbeam_changes).
 
 -include("couchbeam.hrl").
+-include_lib("ibrowse/include/ibrowse.hrl").
+
 -export([wait_for_change/1, continuous_acceptor/2]).
+
+
+-export([stream_changes/2, stream_changes/3,
+         changes_loop/4]).
 
 -export([decode_row/1]).
 -record(state, {
     partial_chunk = <<"">>
 }).
+
+-record(changes_args, {
+        type = normal,
+        http_options = []}).
+
+
+
+stream_changes(Db, ClientPid) ->
+    stream_changes(Db, ClientPid, []).
+
+stream_changes(#db{server=Server, options=IbrowseOpts}=Db,
+        ClientPid, Options) ->
+    Args = parse_changes_options(Options),
+    Url = couchbeam:make_url(Server, [couchbeam:db_url(Db), "/_changes"],
+        Args#changes_args.http_options),
+
+    StartRef = make_ref(),
+
+    UserFun = fun
+        (done) ->
+            ClientPid ! {change, StartRef, done};
+
+        (Row) ->
+            ClientPid ! {change, StartRef, Row},
+            Seq = couchbeam_doc:get_value(<<"seq">>, Row),
+            put(last_seq, Seq)
+    end,
+    
+    Params = {Url, IbrowseOpts},
+
+    ChangesPid = proc_lib:spawn_link(couchbeam_changes, changes_loop,
+        [Args, UserFun, ClientPid, Params]),
+
+    case couchbeam_httpc:request_stream({ChangesPid, once}, get, Url, IbrowseOpts) of
+        {ok, ReqId} ->
+            ChangesPid ! {ibrowse_req_id, ReqId},
+            {ok, StartRef};
+        Error ->
+            Error
+    end.
+
+changes_loop(Args, UserFun, ClientPid, Params) ->
+    Callback = case Args#changes_args.type of
+        continuous ->
+            fun(200, _Headers, DataStreamFun) ->
+                continuous_changes(DataStreamFun, UserFun)
+            end;
+        _ ->
+            fun(200, _Headers, DataStreamFun) ->
+                EventFun = fun(Ev) ->
+                    changes_ev1(Ev, UserFun)
+                end,
+                couchbeam_json_stream:events(DataStreamFun, EventFun)
+            end
+    end,
+    receive
+        {ibrowse_req_id, ReqId} ->
+            process_changes(ReqId, ClientPid, Params, Callback)
+    after ?DEFAULT_TIMEOUT ->
+        throw({maybe_retry_req, timeout})
+    end.
+
+
+process_changes(ReqId, ClientPid, Params, Callback) ->
+    receive
+        {ibrowse_async_headers, IbrowseRef, Code, Headers} ->
+            case list_to_integer(Code) of
+                Ok when Ok =:= 200 ; Ok =:= 201 ; (Ok >= 400 andalso Ok < 500) ->
+                    StreamDataFun = fun() ->
+                        process_changes1(ReqId, ClientPid, Callback)
+                    end,
+                    ibrowse:stream_next(IbrowseRef), 
+                    Callback(Ok, Headers, StreamDataFun),
+                    clean_mailbox_req(ReqId),
+                    ok;
+                R when R =:= 301 ; R =:= 302 ; R =:= 303 ->
+                    do_redirect(Headers, Callback, ClientPid, Params),
+                    ibrowse:stream_close(reqId);
+                Error ->
+                    ClientPid ! {error, {http_error, {status,
+                                Error}}}
+
+            end;
+        {ibrowse_async_response, ReqId, {error, _} = Error} ->
+            throw({maybe_retry_req, Error})
+
+    end.
+
+process_changes1(ReqId, ClientPid, Callback) ->
+    receive
+    {ibrowse_async_response, ReqId, {error, Error}} ->
+        ClientPid ! {error, Error};
+    {ibrowse_async_response, ReqId, <<>>} ->
+        ibrowse:stream_next(ReqId),
+        process_changes1(ReqId, ClientPid, Callback);
+    {ibrowse_async_response, ReqId, Data} ->
+        ibrowse:stream_next(ReqId),
+        {Data, fun() -> process_changes1(ReqId, ClientPid, Callback) end};
+    {ibrowse_async_response_end, ReqId} ->
+        ClientPid ! http_response_end,
+        done    
+end.
+
+
+clean_mailbox_req(ReqId) ->
+    receive
+    {ibrowse_async_response, ReqId, _} ->
+        clean_mailbox_req(ReqId);
+    {ibrowse_async_response_end, ReqId} ->
+        clean_mailbox_req(ReqId)
+    after 0 ->
+        ok
+    end.
+
+do_redirect(Headers, Callback, ClientPid, {Url, IbrowseOpts}) ->
+    RedirectUrl = redirect_url(Headers, Url),
+    Params = {RedirectUrl, IbrowseOpts},
+    case couchbeam_httpc:request_stream({self(), once}, get, RedirectUrl, 
+            IbrowseOpts) of
+        {ok, ReqId} ->
+            process_changes(ReqId, ClientPid, Params, Callback);
+        Error ->
+            Error
+    end.
+
+redirect_url(RespHeaders, OrigUrl) ->
+    MochiHeaders = mochiweb_headers:make(RespHeaders),
+    Location = mochiweb_headers:get_value("Location", MochiHeaders),
+    #url{
+        host = Host,
+        host_type = HostType,
+        port = Port,
+        path = Path,  % includes query string
+        protocol = Proto
+    } = ibrowse_lib:parse_url(Location),
+    #url{
+        username = User,
+        password = Passwd
+    } = ibrowse_lib:parse_url(OrigUrl),
+    Creds = case is_list(User) andalso is_list(Passwd) of
+    true ->
+        User ++ ":" ++ Passwd ++ "@";
+    false ->
+        []
+    end,
+    HostPart = case HostType of
+    ipv6_address ->
+        "[" ++ Host ++ "]";
+    _ ->
+        Host
+    end,
+    atom_to_list(Proto) ++ "://" ++ Creds ++ HostPart ++ ":" ++
+        integer_to_list(Port) ++ Path.
+
+
+changes_ev1(object_start, UserFun) ->
+    fun(Ev) -> changes_ev2(Ev, UserFun) end.
+
+changes_ev2({key, <<"results">>}, UserFun) ->
+    fun(Ev) -> changes_ev3(Ev, UserFun) end;
+changes_ev2(_, UserFun) ->
+    fun(Ev) -> changes_ev2(Ev, UserFun) end.
+
+changes_ev3(array_start, UserFun) ->
+    fun(Ev) -> changes_ev_loop(Ev, UserFun) end.
+
+changes_ev_loop(object_start, UserFun) ->
+    fun(Ev) ->
+        couchbeam_json_stream:collect_object(Ev,
+            fun(Obj) ->
+                UserFun(Obj),
+                fun(Ev2) -> changes_ev_loop(Ev2, UserFun) end
+            end)
+    end;
+changes_ev_loop(array_end, UserFun) ->
+    UserFun(done),
+    fun(_Ev) -> changes_ev_done() end.
+
+changes_ev_done() ->
+    fun(_Ev) -> changes_ev_done() end.
+
+continuous_changes(DataFun, UserFun) ->
+    {DataFun2, _, Rest} = couchbeam_json_stream:events(
+        DataFun,
+        fun(Ev) -> parse_changes_line(Ev, UserFun) end),
+    continuous_changes(fun() -> {Rest, DataFun2} end, UserFun).
+
+parse_changes_line(object_start, UserFun) ->
+    fun(Ev) ->
+        couchbeam_json_stream:collect_object(Ev,
+            fun(Obj) -> UserFun(Obj) end)
+    end.
+
+parse_changes_options(Options) ->
+    parse_changes_options(Options, #changes_args{}).
+
+parse_changes_options([], Args) ->
+    Args;
+parse_changes_options([continuous|Rest], #changes_args{http_options=Opts}) ->
+    Opts1 = [{"feed", "continuous"}|Opts],
+    parse_changes_options(Rest, #changes_args{type=continuous,
+            http_options=Opts1});
+parse_changes_options([longpoll|Rest], #changes_args{http_options=Opts}) ->
+    Opts1 = [{"feed", "longpoll"}|Opts],
+    parse_changes_options(Rest, #changes_args{type=longpoll,
+            http_options=Opts1});
+parse_changes_options([normal|Rest], Args) ->
+    parse_changes_options(Rest, Args#changes_args{type=normal});
+parse_changes_options([include_docs|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"include_docs", "true"}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{since, Since}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"since", Since}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{timeout, Timeout}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"timeout", Timeout}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{heartbeat, Heartbeat}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"heartbeat", Heartbeat}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([heartbeat|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"heartbeat", "true"}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{filter, FilterName}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"filter", FilterName}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{filter, FilterName, FilterArgs}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"filter", FilterName}|Opts] ++ FilterArgs,
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([_|Rest], Args) ->
+    parse_changes_options(Rest, Args).
+
 
 wait_for_change(Reqid) ->
     wait_for_change(Reqid, 200, []).
