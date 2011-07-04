@@ -70,7 +70,6 @@ stream(#db{server=Server, options=IbrowseOpts}=Db,
     Args = parse_changes_options(Options),
     Url = couchbeam:make_url(Server, [couchbeam:db_url(Db), "/_changes"],
         Args#changes_args.http_options),
-
     StartRef = make_ref(),
 
     UserFun = fun
