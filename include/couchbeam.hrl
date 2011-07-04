@@ -54,6 +54,14 @@
     | conflicts | {style, string()} | descending.
 -type changes_options() :: list(changes_option()).
 
+-type changes_option1() :: longpoll | normal
+    | include_docs | {since, integer()}
+    | {timeout, integer()}
+    | heartbeat | {heartbeat, integer()}
+    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+)}
+    | conflicts | {style, string()} | descending.
+-type changes_options1() :: list(changes_option1()).
 
 -record(server, {
     host :: string(),

@@ -12,6 +12,7 @@
 
 
 -export([stream/2, stream/3,
+         fetch/1, fetch/2,
          parse_changes_options/1,
          changes_loop/3]).
 
@@ -19,6 +20,7 @@
 -record(state, {
     partial_chunk = <<"">>
 }).
+
 
 -spec stream(Db::db(), Client::pid()) -> {ok, StartRef::term(),
         ChangesPid::pid()} | {error, term()}.
@@ -59,6 +61,10 @@ stream(Db, Client) ->
 %%          value}) : set the filter to use with optional arguments</li>
 %%   </ul></p>
 %%
+%% <p> Return {ok, StartRef, ChangesPid} or {error, Error}. Ref can be
+%% used to disctint all changes from this pid. ChangesPid is the pid of
+%% the process changes loop process. Can be used to monitor it or kill it
+%% when needed.</p>
 stream(#db{server=Server, options=IbrowseOpts}=Db,
         ClientPid, Options) ->
     Args = parse_changes_options(Options),
@@ -95,6 +101,103 @@ stream(#db{server=Server, options=IbrowseOpts}=Db,
             Error
     end.
 
+-spec fetch(Db::db()) -> {ok, LastSeq::integer(), Rows::list()} | {error,
+        LastSeq::integer(), Error::term()}.
+%% @equiv fetch(Db, [])
+fetch(Db) ->
+    fetch(Db, []).
+
+-spec fetch(Db::db(), Options::changes_options1()) -> {ok,
+        LastSeq::integer(), Rows::list()} | {error,  LastSeq::integer(),
+        Error::term()}.
+%% @doc Collect Changes. Could be used to make a blocking call to a
+%% longpoll change feed 
+%%  <p>Db : a db record</p>
+%% <p>ChangesOptions :: changes_options() [continuous | longpoll | normal
+%%    | include_docs | {since, integer()}
+%%    | {timeout, integer()}
+%%    | heartbeat | {heartbeat, integer()}
+%%    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+%%
+%%   <ul>
+%%      <li>longpoll | normal : set the type of changes
+%%          feed to get</li>
+%%      <li>include_docs : if you want to include the doc in the line of
+%%          change</li>
+%%      <li>{timeout, Timeout::integer()} : timeout</li>
+%%      <li>heartbeat | {heartbeat, Heartbeat::integer()} : set couchdb 
+%%          to send a heartbeat to maintain connection open</li>
+%%      <li>{filter, FilterName} | {filter, FilterName, Args::list({key,
+%%          value}) : set the filter to use with optional arguments</li>
+%%   </ul></p>
+%%
+%% <p>Resut: {ok, LastSeq::integer(), Rows::list()} or {error, LastSeq,
+%% Error}. LastSeq is the last sequence of changes.</p>
+fetch(Db, Options) ->
+    case stream(Db, self(), Options) of
+        {ok, StartRef, _} ->
+            collect_changes(StartRef, []);
+        Error ->
+            Error
+    end.
+
+
+%% @doc parse changes options and return a changes_args record
+-spec parse_changes_options(Options::changes_options()) ->
+    changes_args().
+parse_changes_options(Options) ->
+    parse_changes_options(Options, #changes_args{}).
+
+parse_changes_options([], Args) ->
+    Args;
+parse_changes_options([continuous|Rest], #changes_args{http_options=Opts}) ->
+    Opts1 = [{"feed", "continuous"}|Opts],
+    parse_changes_options(Rest, #changes_args{type=continuous,
+            http_options=Opts1});
+parse_changes_options([longpoll|Rest], #changes_args{http_options=Opts}) ->
+    Opts1 = [{"feed", "longpoll"}|Opts],
+    parse_changes_options(Rest, #changes_args{type=longpoll,
+            http_options=Opts1});
+parse_changes_options([normal|Rest], Args) ->
+    parse_changes_options(Rest, Args#changes_args{type=normal});
+parse_changes_options([include_docs|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"include_docs", "true"}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{since, Since}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"since", Since}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{timeout, Timeout}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"timeout", Timeout}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{heartbeat, Heartbeat}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"heartbeat", Heartbeat}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([heartbeat|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"heartbeat", "true"}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{filter, FilterName}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"filter", FilterName}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{filter, FilterName, FilterArgs}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"filter", FilterName}|Opts] ++ FilterArgs,
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{limit, Limit}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"limit", Limit}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([conflicts|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"conflicts", "true"}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{style, Style}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"style", Style}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([descending|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"descending", "true"}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([_|Rest], Args) ->
+    parse_changes_options(Rest, Args).
+
+-spec changes_loop(Args::changes_args(), UserFun::function(),
+    Params::{Url::string(), IbrowseOpts::list()}) -> ok.
 changes_loop(Args, UserFun, Params) ->
     Callback = case Args#changes_args.type of
         continuous ->
@@ -116,6 +219,19 @@ changes_loop(Args, UserFun, Params) ->
         UserFun({error, timeout}) 
     end.
 
+%% @private
+
+collect_changes(Ref, Acc) ->
+    receive
+        {change, Ref, {done, LastSeq}} ->
+            Rows = lists:reverse(Acc),
+            {ok, LastSeq, Rows};
+        {change, Ref, Row} ->
+            collect_changes(Ref, [Row|Acc]);
+        {error, Ref, LastSeq, Error} ->
+            {error, LastSeq, Error}
+    end.
+            
 
 process_changes(ReqId, Params, UserFun, Callback) ->
     receive
@@ -246,59 +362,6 @@ parse_changes_line(object_start, UserFun) ->
             fun(Obj) -> UserFun(Obj) end)
     end.
 
-%% @doc parse changes options and return a changes_args record
--spec parse_changes_options(Options::changes_options()) ->
-    changes_args().
-parse_changes_options(Options) ->
-    parse_changes_options(Options, #changes_args{}).
-
-parse_changes_options([], Args) ->
-    Args;
-parse_changes_options([continuous|Rest], #changes_args{http_options=Opts}) ->
-    Opts1 = [{"feed", "continuous"}|Opts],
-    parse_changes_options(Rest, #changes_args{type=continuous,
-            http_options=Opts1});
-parse_changes_options([longpoll|Rest], #changes_args{http_options=Opts}) ->
-    Opts1 = [{"feed", "longpoll"}|Opts],
-    parse_changes_options(Rest, #changes_args{type=longpoll,
-            http_options=Opts1});
-parse_changes_options([normal|Rest], Args) ->
-    parse_changes_options(Rest, Args#changes_args{type=normal});
-parse_changes_options([include_docs|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"include_docs", "true"}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([{since, Since}|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"since", Since}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([{timeout, Timeout}|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"timeout", Timeout}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([{heartbeat, Heartbeat}|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"heartbeat", Heartbeat}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([heartbeat|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"heartbeat", "true"}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([{filter, FilterName}|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"filter", FilterName}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([{filter, FilterName, FilterArgs}|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"filter", FilterName}|Opts] ++ FilterArgs,
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([{limit, Limit}|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"limit", Limit}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([conflicts|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"conflicts", "true"}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([{style, Style}|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"style", Style}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([descending|Rest], #changes_args{http_options=Opts} = Args) ->
-    Opts1 = [{"descending", "true"}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
-parse_changes_options([_|Rest], Args) ->
-    parse_changes_options(Rest, Args).
 
 
 wait_for_change(Reqid) ->
