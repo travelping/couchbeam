@@ -12,7 +12,7 @@
 
 
 -export([stream_changes/2, stream_changes/3,
-         changes_loop/4]).
+         changes_loop/3]).
 
 -export([decode_row/1]).
 -record(state, {
@@ -24,9 +24,15 @@
         http_options = []}).
 
 
-
+-spec stream_changes(Db::db(), ClientPid::pid()) -> {ok, StartRef::term(),
+        ChangesPid::pid()} | {error, term()}.
+%% @equiv stream_changes(Db, ClientPid, []).
 stream_changes(Db, ClientPid) ->
     stream_changes(Db, ClientPid, []).
+
+-spec stream_changes(Db::db(), ClientPid::pid(),
+    Options::changes_options()) -> {ok, StartRef::term(),
+        ChangesPid::pid()} | {error, term()}.
 
 stream_changes(#db{server=Server, options=IbrowseOpts}=Db,
         ClientPid, Options) ->
@@ -38,7 +44,13 @@ stream_changes(#db{server=Server, options=IbrowseOpts}=Db,
 
     UserFun = fun
         (done) ->
-            ClientPid ! {change, StartRef, done};
+            LastSeq = get(last_seq),
+            ClientPid ! {change, StartRef, {done, LastSeq}};
+        ({error, Error}) ->
+            LastSeq = get(last_seq),
+            ClientPid ! {error, StartRef, LastSeq, Error};
+        ({[{<<"last_seq">>, _}]}) ->
+            ok;
         (Row) ->
             ClientPid ! {change, StartRef, Row},
             Seq = couchbeam_doc:get_value(<<"seq">>, Row),
@@ -48,17 +60,17 @@ stream_changes(#db{server=Server, options=IbrowseOpts}=Db,
     Params = {Url, IbrowseOpts},
 
     ChangesPid = proc_lib:spawn_link(couchbeam_changes, changes_loop,
-        [Args, UserFun, ClientPid, Params]),
+        [Args, UserFun, Params]),
 
     case couchbeam_httpc:request_stream({ChangesPid, once}, get, Url, IbrowseOpts) of
         {ok, ReqId} ->
             ChangesPid ! {ibrowse_req_id, ReqId},
-            {ok, StartRef};
+            {ok, StartRef, ChangesPid};
         Error ->
             Error
     end.
 
-changes_loop(Args, UserFun, ClientPid, Params) ->
+changes_loop(Args, UserFun, Params) ->
     Callback = case Args#changes_args.type of
         continuous ->
             fun(200, _Headers, DataStreamFun) ->
@@ -74,49 +86,48 @@ changes_loop(Args, UserFun, ClientPid, Params) ->
     end,
     receive
         {ibrowse_req_id, ReqId} ->
-            process_changes(ReqId, ClientPid, Params, Callback)
+            process_changes(ReqId, Params, UserFun, Callback)
     after ?DEFAULT_TIMEOUT ->
-        throw({maybe_retry_req, timeout})
+        UserFun({error, timeout}) 
     end.
 
 
-process_changes(ReqId, ClientPid, Params, Callback) ->
+process_changes(ReqId, Params, UserFun, Callback) ->
     receive
         {ibrowse_async_headers, IbrowseRef, Code, Headers} ->
             case list_to_integer(Code) of
                 Ok when Ok =:= 200 ; Ok =:= 201 ; (Ok >= 400 andalso Ok < 500) ->
                     StreamDataFun = fun() ->
-                        process_changes1(ReqId, ClientPid, Callback)
+                        process_changes1(ReqId, UserFun, Callback)
                     end,
                     ibrowse:stream_next(IbrowseRef), 
                     Callback(Ok, Headers, StreamDataFun),
                     clean_mailbox_req(ReqId),
                     ok;
                 R when R =:= 301 ; R =:= 302 ; R =:= 303 ->
-                    do_redirect(Headers, Callback, ClientPid, Params),
+                    do_redirect(Headers, UserFun, Callback, Params),
                     ibrowse:stream_close(reqId);
                 Error ->
-                    ClientPid ! {error, {http_error, {status,
-                                Error}}}
+                    UserFun({error, {http_error, {status,
+                                    Error}}})
 
             end;
         {ibrowse_async_response, ReqId, {error, _} = Error} ->
-            throw({maybe_retry_req, Error})
-
+            UserFun({error, Error})
     end.
 
-process_changes1(ReqId, ClientPid, Callback) ->
+process_changes1(ReqId, UserFun, Callback) ->
     receive
     {ibrowse_async_response, ReqId, {error, Error}} ->
-        ClientPid ! {error, Error};
+        UserFun({error, Error});
     {ibrowse_async_response, ReqId, <<>>} ->
         ibrowse:stream_next(ReqId),
-        process_changes1(ReqId, ClientPid, Callback);
+        process_changes1(ReqId, UserFun, Callback);
     {ibrowse_async_response, ReqId, Data} ->
         ibrowse:stream_next(ReqId),
-        {Data, fun() -> process_changes1(ReqId, ClientPid, Callback) end};
+        {Data, fun() -> process_changes1(ReqId, UserFun, Callback) end};
     {ibrowse_async_response_end, ReqId} ->
-        ClientPid ! done,
+        UserFun(done),
         done 
 end.
 
@@ -131,15 +142,15 @@ clean_mailbox_req(ReqId) ->
         ok
     end.
 
-do_redirect(Headers, Callback, ClientPid, {Url, IbrowseOpts}) ->
+do_redirect(Headers, UserFun, Callback, {Url, IbrowseOpts}) ->
     RedirectUrl = redirect_url(Headers, Url),
     Params = {RedirectUrl, IbrowseOpts},
     case couchbeam_httpc:request_stream({self(), once}, get, RedirectUrl, 
             IbrowseOpts) of
         {ok, ReqId} ->
-            process_changes(ReqId, ClientPid, Params, Callback);
+            process_changes(ReqId, Params, UserFun, Callback);
         Error ->
-            Error
+            UserFun({error, {redirect, Error}})
     end.
 
 redirect_url(RespHeaders, OrigUrl) ->

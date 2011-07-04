@@ -24,6 +24,37 @@
 %% -type boolean() :: bool()
 
 
+
+-type db_name() :: binary() | string().
+-type docid() :: binary() | string().
+
+-type ejson() :: ejson_object() | ejson_array().
+
+-type ejson_array() :: [ejson_term()].
+-type ejson_object() :: {[{ejson_key(), ejson_term()}]}.
+
+-type ejson_key() :: binary() | atom().
+
+-type ejson_term() :: ejson_array() 
+    | ejson_object() 
+    | ejson_string() 
+    | ejson_number() 
+    | true | false | null.
+
+-type ejson_string() :: binary().
+
+-type ejson_number() :: float() | integer().
+
+-type changes_option() :: continuous | longpoll | normal
+    | include_docs | {since, integer()}
+    | {timeout, integer()}
+    | heartbeat | {heartbeat, integer()}
+    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+)}
+    | conflicts | {style, string()} | descending.
+-type changes_options() :: list(changes_option()).
+
+
 -record(server, {
     host :: string(),
     port :: integer(),
