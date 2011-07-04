@@ -91,6 +91,11 @@
 
 -type view() :: #view{}.
 
+-record(changes_args, {
+        type = normal,
+        http_options = []}).
+-type changes_args() :: #changes_args{}.
+
 -record(gen_changes_state, {
     req_id,
     mod,

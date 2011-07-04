@@ -11,7 +11,8 @@
 -export([wait_for_change/1, continuous_acceptor/2]).
 
 
--export([stream_changes/2, stream_changes/3,
+-export([stream/2, stream/3,
+         parse_changes_options/1,
          changes_loop/3]).
 
 -export([decode_row/1]).
@@ -19,22 +20,46 @@
     partial_chunk = <<"">>
 }).
 
--record(changes_args, {
-        type = normal,
-        http_options = []}).
-
-
--spec stream_changes(Db::db(), ClientPid::pid()) -> {ok, StartRef::term(),
+-spec stream(Db::db(), Client::pid()) -> {ok, StartRef::term(),
         ChangesPid::pid()} | {error, term()}.
-%% @equiv stream_changes(Db, ClientPid, []).
-stream_changes(Db, ClientPid) ->
-    stream_changes(Db, ClientPid, []).
+%% @equiv stream(Db, Client, [])
+stream(Db, Client) ->
+    stream(Db, Client, []).
 
--spec stream_changes(Db::db(), ClientPid::pid(),
+-spec stream(Db::db(), ClientPid::pid(),
     Options::changes_options()) -> {ok, StartRef::term(),
-        ChangesPid::pid()} | {error, term()}.
-
-stream_changes(#db{server=Server, options=IbrowseOpts}=Db,
+        ChangesPid::pid()} | {error, term()}. 
+%% @doc Stream changes to a pid
+%%  <p>Db : a db record</p>
+%%  <p>ClientPid : pid where to send changes events where events are
+%%  <dl>
+%%      <dt>{change, StartRef, {done, Lastseq::integer()}</dt>
+%%          <dd>Connection terminated or you got all changes</dd>
+%%      <dt>{change, StartRef, Row :: ejson_object()}</dt>
+%%          <dd>Line of change</dd>
+%%      <dt>{error, LastSeq::integer(), Msg::term()}</dt>
+%%          <dd>Got an error, connection is closed.</dd>
+%% </dl>
+%%    LastSeq is the last sequence of changes.</p>
+%% <p>ChangesOptions :: changes_options() [continuous | longpoll | normal
+%%    | include_docs | {since, integer()}
+%%    | {timeout, integer()}
+%%    | heartbeat | {heartbeat, integer()}
+%%    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+%%
+%%   <ul>
+%%      <li>continuous | longpoll | normal : set the type of changes
+%%          feed to get</li>
+%%      <li>include_docs : if you want to include the doc in the line of
+%%          change</li>
+%%      <li>{timeout, Timeout::integer()} : timeout</li>
+%%      <li>heartbeat | {heartbeat, Heartbeat::integer()} : set couchdb 
+%%          to send a heartbeat to maintain connection open</li>
+%%      <li>{filter, FilterName} | {filter, FilterName, Args::list({key,
+%%          value}) : set the filter to use with optional arguments</li>
+%%   </ul></p>
+%%
+stream(#db{server=Server, options=IbrowseOpts}=Db,
         ClientPid, Options) ->
     Args = parse_changes_options(Options),
     Url = couchbeam:make_url(Server, [couchbeam:db_url(Db), "/_changes"],
@@ -221,6 +246,9 @@ parse_changes_line(object_start, UserFun) ->
             fun(Obj) -> UserFun(Obj) end)
     end.
 
+%% @doc parse changes options and return a changes_args record
+-spec parse_changes_options(Options::changes_options()) ->
+    changes_args().
 parse_changes_options(Options) ->
     parse_changes_options(Options, #changes_args{}).
 
