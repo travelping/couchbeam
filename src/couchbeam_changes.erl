@@ -363,10 +363,13 @@ parse_changes_line(object_start, UserFun) ->
     end.
 
 
-
+%% @deprecated this function have been deprecated and will be removed in
+%% version 0.8
 wait_for_change(Reqid) ->
     wait_for_change(Reqid, 200, []).
 
+%% @deprecated this function have been deprecated and will be removed in
+%% version 0.8
 wait_for_change(Reqid, ReqStatus, Acc) ->
     receive
         {ibrowse_async_response_end, Reqid} ->
@@ -395,6 +398,8 @@ wait_for_change(Reqid, ReqStatus, Acc) ->
 
 
 %% @doc initiate continuous loop 
+%% @deprecated this function have been deprecated and will be removed in
+%% version 0.8
 continuous_acceptor(Pid, PidRef) ->
     receive
         {ibrowse_req_id, PidRef, IbrowseRef} ->
@@ -405,7 +410,9 @@ continuous_acceptor(Pid, PidRef) ->
     end.
 
 
-%% @doc main ibrowse loop to receive continuous changes 
+%% @doc main ibrowse loop to receive continuous changes
+%% @deprecated this function have been deprecated and will be removed in
+%% version 0.8
 continuous_acceptor(Pid, PidRef, IbrowseRef, State) ->
     receive
         {ibrowse_async_response_end, IbrowseRef} ->
@@ -426,6 +433,8 @@ continuous_acceptor(Pid, PidRef, IbrowseRef, State) ->
             end 
     end.
 
+%% @deprecated this function have been deprecated and will be removed in
+%% version 0.8
 handle_messages([], _Pid, _PidRef, IbrowseRef, State) ->
     ibrowse:stream_next(IbrowseRef),
     {ok, State};
@@ -454,6 +463,8 @@ handle_messages([Chunk|Rest], Pid, PidRef, IbrowseRef, State) ->
     end,
     handle_messages(Rest,  Pid, PidRef, IbrowseRef, NewState).
 
+%% @deprecated this function have been deprecated and will be removed in
+%% version 0.8
 decode_row(<<",", Rest/binary>>) ->
     decode_row(Rest);
 decode_row(Row) ->

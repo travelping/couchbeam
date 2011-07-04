@@ -118,3 +118,5 @@
     
 -define(USER_AGENT, "couchbeam/0.5.0").
 
+-define(DEPRECATED(Old, New, When), 
+    couchbeam_util:deprecated(Old, New, When)).
