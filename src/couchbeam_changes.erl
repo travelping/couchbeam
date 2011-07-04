@@ -89,7 +89,7 @@ stream(#db{server=Server, options=IbrowseOpts}=Db,
     
     Params = {Url, IbrowseOpts},
 
-    ChangesPid = proc_lib:spawn_link(couchbeam_changes, changes_loop,
+    ChangesPid = spawn_link(couchbeam_changes, changes_loop,
         [Args, UserFun, Params]),
 
     case couchbeam_httpc:request_stream({ChangesPid, once}, get, Url, IbrowseOpts) of
@@ -240,9 +240,15 @@ process_changes(ReqId, Params, UserFun, Callback) ->
                     StreamDataFun = fun() ->
                         process_changes1(ReqId, UserFun, Callback)
                     end,
-                    ibrowse:stream_next(IbrowseRef), 
-                    Callback(Ok, Headers, StreamDataFun),
-                    clean_mailbox_req(ReqId),
+                    ibrowse:stream_next(IbrowseRef),
+                    try 
+                        Callback(Ok, Headers, StreamDataFun),
+                        clean_mailbox_req(ReqId)
+                    catch
+                        throw:http_response_end -> ok;
+                        _:Error ->
+                            UserFun({error, Error})
+                    end,
                     ok;
                 R when R =:= 301 ; R =:= 302 ; R =:= 303 ->
                     do_redirect(Headers, UserFun, Callback, Params),
@@ -268,7 +274,7 @@ process_changes1(ReqId, UserFun, Callback) ->
         {Data, fun() -> process_changes1(ReqId, UserFun, Callback) end};
     {ibrowse_async_response_end, ReqId} ->
         UserFun(done),
-        done 
+        {<<"">>, fun() -> throw(http_response_end) end}
 end.
 
 

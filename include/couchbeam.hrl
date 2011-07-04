@@ -105,16 +105,13 @@
 -type changes_args() :: #changes_args{}.
 
 -record(gen_changes_state, {
-    req_id,
+    start_ref,
+    changes_pid,
+    last_seq=0,
     mod,
     modstate,
-    seq,
     db,
-    options,
-    partial_chunk = <<"">>,
-    row,
-    complete=false
-}).
+    options}).
     
 -define(USER_AGENT, "couchbeam/0.5.0").
 
