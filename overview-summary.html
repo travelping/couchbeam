@@ -7,7 +7,8 @@
 <body bgcolor="white">
 <div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
 <h1>Couchbeam - simple erlang CouchDB framework.</h1>
-<p>Copyright © 2009-2011 (c) Benoit Chesneau &lt;benoitc@e-engura.org&gt;
+<p>Copyright © 2009-2011 (c) Benoit Chesneau &lt;benoitc@e-engura.org&gt;</p>
+<p><b>Version:</b> 0.7.0
 </p>
 <p>couchbeam is a simple erlang <a href="http://couchdb.apache.org">CouchDB</a> framework. 
 couchbeam provides you a full featured and easy client to access and manage multiple
@@ -39,6 +40,9 @@ each rows.</dd>
 <p>The goal of couchbeam is to give all access to CouchDB &gt;0.10 API via
 HTTP in erlang. </p>
 
+<p>Read the <a href="https://raw.github.com/benoitc/couchbeam/master/NEWS">NEWS</a>
+file to get last changelog.</p>
+
 <h2>Installation</h2>
 
 <p>Download the sources from our <a href="http://github.com/benoitc/couchbeam">Github repository</a>.</p>
@@ -61,11 +65,12 @@ couchbeam applications will manage for you connections to CouchDB via
 ibrowse and will maintain a collections of unique ids from CouchDB to
 reduce the number of HTTP connections.</p>
 
-<pre>application:start(ibrowse),
+<pre>application:start(sasl),
+application:start(ibrowse),
 application:start(couchbeam).</pre>
 
 <p>Note if you want to use <strong>ssl</strong>, you will need to start
-crypto, public_key, sasl and ssl applications too. </p>
+crypto, public_key and ssl applications too. </p>
 
 <h3>2. Create a connection to the server</h3>
 
@@ -136,32 +141,20 @@ options from the CouchDB API can be used.</p>
 <p>To get all documents you have first to create an object
 that will keep all informations.</p>
 
-<pre>Options = [{include_docs, "true"}],
-{ok, AllDocs} = couchbeam:all_docs(Db, Options).</pre>
+<pre>Options = [include_docs],
+{ok, AllDocs} = couchbeam_view:fetch(Db, 'all_docs', Options).</pre>
 
-<p>You can pass any parameters from the API in the Options 
-Then if you want to retrieve all documents.</p>
-
-<pre>{ok, Results} = couchbeam_view:fetch(AllDocs).</pre>
 
 <p>Ex of results:</p>
 
-<pre>{ok,{[{&lt;&lt;"total_rows"&gt;&gt;,4},
-      {&lt;&lt;"offset"&gt;&gt;,0},
-      {&lt;&lt;"rows"&gt;&gt;,
-       [{[{&lt;&lt;"id"&gt;&gt;,&lt;&lt;"7a0ce91d0d0c5e5b51e904d1ee3266a3"&gt;&gt;},
+<pre>{ok,[{[{&lt;&lt;"id"&gt;&gt;,&lt;&lt;"7a0ce91d0d0c5e5b51e904d1ee3266a3"&gt;&gt;},
           {&lt;&lt;"key"&gt;&gt;,&lt;&lt;"7a0ce91d0d0c5e5b51e904d1ee3266a3"&gt;&gt;},
           {&lt;&lt;"value"&gt;&gt;,
            {[{&lt;&lt;"rev"&gt;&gt;,&lt;&lt;"15-15c0b3c4efa74f9a80d28ac040f18bdb"&gt;&gt;}]}},
           {&lt;&lt;"doc"&gt;&gt;,
            {[{&lt;&lt;"_id"&gt;&gt;,&lt;&lt;"7a0ce91d0d0c5e5b51e904d1ee3266a3"&gt;&gt;},
              {&lt;&lt;"_rev"&gt;&gt;,&lt;&lt;"15-15c0b3c4efa74f9a80d28ac040f18"...&gt;&gt;}]}}]},
-        ]}]}}.</pre>
-
-<p>If you want to fold rows in a fun :</p>
-
-<pre>Fun = fun(Row, AttIn) -&gt; [Row|AttIn] end,
-Att = couchbeam_view:fold(AllDocs, Fun).</pre>
+        ]}.</pre>
 
 <p>All functions to manipulate these results are in <a href="couchbeam_view.html"><code>couchbeam_view</code></a>
 module.</p>
@@ -174,10 +167,9 @@ doing anything.</p>
 <pre>Options = [],
 DesignNam = "designname",
 ViewName = "viewname",
-{ok, View} = couchbeam:view(Db, {DesignNam, ViewName}, Options).</pre>
+{ok, ViewResults} = couchbeam_view:fetch(Db, {DesignNam, ViewName}, Options).</pre>
 
-<p>As a convenience, you can replace the tupple by a string
-"designname/viewname". Like the <code>all_docs</code> function, use the functions
+<p>Like the <code>all_docs</code> function, use the functions
 from <a href="couchbeam_view.html"><code>couchbeam_view</code></a> module to manipulate results. You can pass
 any querying options from the <a href="http://wiki.apache.org/couchdb/HTTP_view_API">view API</a>.</p>
 
@@ -203,7 +195,38 @@ any querying options from the <a href="http://wiki.apache.org/couchdb/HTTP_view_
 <p>You can also use <a href="http://github.com/couchapp/couchapp">couchapp</a> to manage them
 more easily.</p>
 
-<h3>8. Put,Fetch and Delete documents attachments</h3>
+<h3>8. Stream View results</h3>
+
+<p><strong>New feature in couchbeam 0.7</strong>. While you can get
+results using <a href="couchbeam_views.html#fetch-2"><code>couchbeam_views:fetch/2</code></a>i, you can also retrieve
+all rows in a streaming fashion:</p>
+
+<pre>ViewFun = fun(Ref, F) -&gt;
+    receive
+        {row, Ref, done} -&gt;
+            io:format("done", []),
+            done;
+        {row, Ref, Row} -&gt;
+            io:format("got ~p~n", [Row]),
+            F(Ref, F);
+        {error, Ref, Error} -&gt;
+            io:format("error: ~p~n", [Error])
+    end
+end,
+
+{ok, StartRef, _ViewPid} = couchbeam_view:stream(Db, 'all_docs', self()),
+ViewFun(StartRef, ViewFun),
+{ok, StartRef2, _ViewPid2} = couchbeam_view:stream(Db, 'all_docs', self(), [include_docs]),
+ViewFun(StartRef2, ViewFun).</pre>
+
+<p>You can of course do the same with a view:</p>
+
+<pre>DesignNam = "designname",
+ViewName = "viewname",
+{ok, StartRef3, _ViewPid3} = couchbeam_view:stream(Db, {DesignNam, ViewName}, self(), [include_docs]),
+ViewFun(StartRef3, ViewFun).</pre>
+
+<h3>9. Put,Fetch and Delete documents attachments</h3>
 
 <p>You can add attachments to any CouchDB documents. Attachments could be
 anything.</p>
@@ -232,15 +255,15 @@ fetch.</p>
 <pre>{ok, Doc4} = couchbeam:open_doc(Db, DocID),
 ok = couchbeam:delete_attachment(Db, Doc4, AttName).</pre>
 
-<h3>9. Changes</h3>
+<h3>10. Changes</h3>
 
 <p>CouchDB provides a means to get a list of changes made to documents in
-the database. With couchbeam you can get changes using <a href="couchbeam.html#changes-2"><code>couchbeam:changes/2</code></a>. 
+the database. With couchbeam you can get changes using <a href="couchbeam_changes.html#fetch-2"><code>couchbeam_changes:fetch/2</code></a>. 
 This function returns all changes immediately. But you can also retrieve
-all changes using longpolling :</p>
+all changes rows using longpolling :</p>
 
 <pre>Options = [],
-{ok, Changes} = couchbeam:changes_wait_once(Db, Options).</pre>
+{ok, LastSeq, Rows} = couchbeam_changes:fetch(Db, Options).</pre>
 
 <p>Options can be any Changes query parameters. See
 <a href="http://wiki.apache.org/couchdb/HTTP_database_API#Changes" target="_top"><tt>http://wiki.apache.org/couchdb/HTTP_database_API#Changes</tt></a> for more
@@ -250,19 +273,20 @@ informations.</p>
 
 <pre>ChangesFun = fun(ReqId, F) -&gt;
     receive
-        {ReqId, done} -&gt;
+        {change, StartRef, {done, LastSeq}} -&gt;
+            io:format("stopped, last seq is ~p~n", [LastSeq]),
             ok;
-        {ReqId, {change, Change}} -&gt;
-            io:format("change ~p ~n", [Change]),
-            F(ReqId, F);    
-        {ReqId, {error, E}}-&gt;
-            io:format("error ? ~p ~n", [E])
-    end
+        {change, StartRef, Row} -&gt;
+            io:format("change row ~p ~n", [Row]),
+            F(StartRef, F);    
+        {error, StartRef, LastSeq, Error}-&gt;
+            io:format("error ? ~p ~n, last seq: ~p~n", [Error, LastSeq])
+    end 
 end,
 Pid = self(),
-Options = [{heartbeat, "true"}],
-{ok, ReqId} = couchbeam:changes_wait(Db, Pid, Options),
-ChangesFun(ReqId, ChangesFun).</pre>
+Options = [continuous, heartbeat],
+{ok, StartRef, _ChangePid} = couchbeam_changes:stream(Db, Pid, Options),
+ChangesFun(StartRef, ChangesFun).</pre>
 
 <h3>Authentication/ Connections options</h3>
 
@@ -299,6 +323,6 @@ channel</a> or on the <a href="http://groups.google.com/group/couchdbkit">mailin
 
 <hr>
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, May 4 2011, 10:24:41.</i></p>
+<p><i>Generated by EDoc, Jul 5 2011, 17:11:39.</i></p>
 </body>
 </html>

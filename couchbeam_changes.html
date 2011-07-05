@@ -13,30 +13,124 @@
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#continuous_acceptor-2">continuous_acceptor/2</a></td><td>initiate continuous loop.</td></tr>
-<tr><td valign="top"><a href="#decode_row-1">decode_row/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#wait_for_change-1">wait_for_change/1</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#changes_loop-3">changes_loop/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#continuous_acceptor-2">continuous_acceptor/2</a></td><td>(<em>Deprecated</em>.) initiate continuous loop.</td></tr>
+<tr><td valign="top"><a href="#fetch-1">fetch/1</a></td><td>Equivalent to <a href="#fetch-2"><tt>fetch(Db, [])</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#fetch-2">fetch/2</a></td><td>Collect Changes.</td></tr>
+<tr><td valign="top"><a href="#parse_changes_options-1">parse_changes_options/1</a></td><td>parse changes options and return a changes_args record.</td></tr>
+<tr><td valign="top"><a href="#stream-2">stream/2</a></td><td>Equivalent to <a href="#stream-3"><tt>stream(Db, Client, [])</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#stream-3">stream/3</a></td><td>Stream changes to a pid.</td></tr>
+<tr><td valign="top"><a href="#wait_for_change-1">wait_for_change/1</a></td><td>(<em>Deprecated</em>.) </td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
 
+<h3 class="function"><a name="changes_loop-3">changes_loop/3</a></h3>
+<div class="spec">
+<p><tt>changes_loop(Args::<a href="#type-changes_args">changes_args()</a>, UserFun::function(), Params::{Url::string(), IbrowseOpts::list()}) -&gt; ok</tt><br></p>
+</div>
+
 <h3 class="function"><a name="continuous_acceptor-2">continuous_acceptor/2</a></h3>
 <div class="spec">
 <p><tt>continuous_acceptor(Pid, PidRef) -&gt; any()</tt></p>
-</div><p>initiate continuous loop</p>
+</div><p><b>This function is deprecated:</b> this function have been deprecated and will be removed in
+  version 0.8</p>
+<p>initiate continuous loop</p>
 
-<h3 class="function"><a name="decode_row-1">decode_row/1</a></h3>
+<h3 class="function"><a name="fetch-1">fetch/1</a></h3>
 <div class="spec">
-<p><tt>decode_row(Row) -&gt; any()</tt></p>
-</div>
+<p><tt>fetch(Db::<a href="#type-db">db()</a>) -&gt; {ok, LastSeq::integer(), Rows::list()} | {error, LastSeq::integer(), Error::term()}</tt><br></p>
+</div><p>Equivalent to <a href="#fetch-2"><tt>fetch(Db, [])</tt></a>.</p>
+
+
+<h3 class="function"><a name="fetch-2">fetch/2</a></h3>
+<div class="spec">
+<p><tt>fetch(Db::<a href="#type-db">db()</a>, Options::<a href="#type-changes_options1">changes_options1()</a>) -&gt; {ok, LastSeq::integer(), Rows::list()} | {error, LastSeq::integer(), Error::term()}</tt><br></p>
+</div><p>Collect Changes. Could be used to make a blocking call to a
+  longpoll change feed
+   <p>Db : a db record</p>
+  <p>ChangesOptions :: changes_options() [continuous | longpoll | normal
+     | include_docs | {since, integer()}
+     | {timeout, integer()}
+     | heartbeat | {heartbeat, integer()}
+     | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+ 
+    <ul>
+       <li>longpoll | normal : set the type of changes
+           feed to get</li>
+       <li>include_docs : if you want to include the doc in the line of
+           change</li>
+       <li>{timeout, Timeout::integer()} : timeout</li>
+       <li>heartbeat | {heartbeat, Heartbeat::integer()} : set couchdb
+           to send a heartbeat to maintain connection open</li>
+       <li>{filter, FilterName} | {filter, FilterName, Args::list({key,
+           value}) : set the filter to use with optional arguments</li>
+    </ul></p>
+ 
+  <p>Resut: {ok, LastSeq::integer(), Rows::list()} or {error, LastSeq,
+  Error}. LastSeq is the last sequence of changes.</p></p>
+
+<h3 class="function"><a name="parse_changes_options-1">parse_changes_options/1</a></h3>
+<div class="spec">
+<p><tt>parse_changes_options(Options::<a href="#type-changes_options">changes_options()</a>) -&gt; <a href="#type-changes_args">changes_args()</a></tt><br></p>
+</div><p>parse changes options and return a changes_args record</p>
+
+<h3 class="function"><a name="stream-2">stream/2</a></h3>
+<div class="spec">
+<p><tt>stream(Db::<a href="#type-db">db()</a>, Client::pid()) -&gt; {ok, StartRef::term(), ChangesPid::pid()} | {error, term()}</tt><br></p>
+</div><p>Equivalent to <a href="#stream-3"><tt>stream(Db, Client, [])</tt></a>.</p>
+
+
+<h3 class="function"><a name="stream-3">stream/3</a></h3>
+<div class="spec">
+<p><tt>stream(Db::<a href="#type-db">db()</a>, ClientPid::pid(), Options::<a href="#type-changes_options">changes_options()</a>) -&gt; {ok, StartRef::term(), ChangesPid::pid()} | {error, term()}</tt><br></p>
+</div><p>Stream changes to a pid
+   <p>Db : a db record</p>
+   <p>ClientPid : pid where to send changes events where events are
+   <dl>
+       <dt>{change, StartRef, {done, Lastseq::integer()}</dt>
+           <dd>Connection terminated or you got all changes</dd>
+       <dt>{change, StartRef, Row :: ejson_object()}</dt>
+           <dd>Line of change</dd>
+       <dt>{error, LastSeq::integer(), Msg::term()}</dt>
+           <dd>Got an error, connection is closed when an error
+           happend.</dd>
+  </dl>
+     LastSeq is the last sequence of changes.</p>
+  <p>ChangesOptions :: changes_options() [continuous | longpoll | normal
+     | include_docs | {since, integer()}
+     | {timeout, integer()}
+     | heartbeat | {heartbeat, integer()}
+     | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+ 
+    <ul>
+       <li>continuous | longpoll | normal : set the type of changes
+           feed to get</li>
+       <li>include_docs : if you want to include the doc in the line of
+           change</li>
+       <li>{timeout, Timeout::integer()} : timeout</li>
+       <li>heartbeat | {heartbeat, Heartbeat::integer()} : set couchdb
+           to send a heartbeat to maintain connection open</li>
+       <li>{filter, FilterName} | {filter, FilterName, Args::list({key,
+           value}) : set the filter to use with optional arguments</li>
+    </ul></p>
+ 
+  <p> Return {ok, StartRef, ChangesPid} or {error, Error}. Ref can be
+  used to disctint all changes from this pid. ChangesPid is the pid of
+  the changes loop process. Can be used to monitor it or kill it
+  when needed.</p></p>
 
 <h3 class="function"><a name="wait_for_change-1">wait_for_change/1</a></h3>
 <div class="spec">
 <p><tt>wait_for_change(Reqid) -&gt; any()</tt></p>
-</div>
+</div><p><b>This function is deprecated:</b> this function have been deprecated and will be removed in
+  version 0.8</p>
+
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, May 4 2011, 10:24:41.</i></p>
+<p><i>Generated by EDoc, Jul 5 2011, 17:11:39.</i></p>
 </body>
 </html>

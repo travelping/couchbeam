@@ -15,14 +15,14 @@
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#all_dbs-1">all_dbs/1</a></td><td>get list of databases on a CouchDB node.</td></tr>
-<tr><td valign="top"><a href="#all_docs-1">all_docs/1</a></td><td>get all documents from a CouchDB database.</td></tr>
-<tr><td valign="top"><a href="#all_docs-2">all_docs/2</a></td><td>get all documents from a CouchDB database.</td></tr>
-<tr><td valign="top"><a href="#changes-1">changes/1</a></td><td>get all changes.</td></tr>
-<tr><td valign="top"><a href="#changes-2">changes/2</a></td><td>get all changes.</td></tr>
-<tr><td valign="top"><a href="#changes_wait-2">changes_wait/2</a></td><td>wait for continuous changes.</td></tr>
-<tr><td valign="top"><a href="#changes_wait-3">changes_wait/3</a></td><td>wait for continuous changes to a Pid.</td></tr>
-<tr><td valign="top"><a href="#changes_wait_once-1">changes_wait_once/1</a></td><td>wait for longpoll changes.</td></tr>
-<tr><td valign="top"><a href="#changes_wait_once-2">changes_wait_once/2</a></td><td>wait for longpoll changes.</td></tr>
+<tr><td valign="top"><a href="#all_docs-1">all_docs/1</a></td><td>(<em>Deprecated</em>.) get all documents from a CouchDB database.</td></tr>
+<tr><td valign="top"><a href="#all_docs-2">all_docs/2</a></td><td>(<em>Deprecated</em>.) get all documents from a CouchDB database.</td></tr>
+<tr><td valign="top"><a href="#changes-1">changes/1</a></td><td>(<em>Deprecated</em>.) get all changes.</td></tr>
+<tr><td valign="top"><a href="#changes-2">changes/2</a></td><td>(<em>Deprecated</em>.) get all changes.</td></tr>
+<tr><td valign="top"><a href="#changes_wait-2">changes_wait/2</a></td><td>(<em>Deprecated</em>.) wait for continuous changes.</td></tr>
+<tr><td valign="top"><a href="#changes_wait-3">changes_wait/3</a></td><td>(<em>Deprecated</em>.) wait for continuous changes to a Pid.</td></tr>
+<tr><td valign="top"><a href="#changes_wait_once-1">changes_wait_once/1</a></td><td>(<em>Deprecated</em>.) wait for longpoll changes.</td></tr>
+<tr><td valign="top"><a href="#changes_wait_once-2">changes_wait_once/2</a></td><td>(<em>Deprecated</em>.) wait for longpoll changes.</td></tr>
 <tr><td valign="top"><a href="#code_change-3">code_change/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#compact-1">compact/1</a></td><td>Compaction compresses the database file by removing unused
   sections created during updates.</td></tr>
@@ -66,7 +66,6 @@
 <tr><td valign="top"><a href="#lookup_doc_rev-2">lookup_doc_rev/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#lookup_doc_rev-3">lookup_doc_rev/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#make_url-3">make_url/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#maybe_oauth_header-4">maybe_oauth_header/4</a></td><td></td></tr>
 <tr><td valign="top"><a href="#open_db-2">open_db/2</a></td><td>Create a client for connection to a database.</td></tr>
 <tr><td valign="top"><a href="#open_db-3">open_db/3</a></td><td>Create a client for connection to a database.</td></tr>
 <tr><td valign="top"><a href="#open_doc-2">open_doc/2</a></td><td>open a document.</td></tr>
@@ -83,12 +82,6 @@
 <tr><td valign="top"><a href="#replicate-2">replicate/2</a></td><td>Handle replication.</td></tr>
 <tr><td valign="top"><a href="#replicate-3">replicate/3</a></td><td>Handle replication.</td></tr>
 <tr><td valign="top"><a href="#replicate-4">replicate/4</a></td><td>handle Replication.</td></tr>
-<tr><td valign="top"><a href="#request-4">request/4</a></td><td>send an ibrowse request.</td></tr>
-<tr><td valign="top"><a href="#request-5">request/5</a></td><td></td></tr>
-<tr><td valign="top"><a href="#request-6">request/6</a></td><td></td></tr>
-<tr><td valign="top"><a href="#request_stream-4">request_stream/4</a></td><td>stream an ibrowse request.</td></tr>
-<tr><td valign="top"><a href="#request_stream-5">request_stream/5</a></td><td></td></tr>
-<tr><td valign="top"><a href="#request_stream-6">request_stream/6</a></td><td></td></tr>
 <tr><td valign="top"><a href="#save_doc-2">save_doc/2</a></td><td>save a document.</td></tr>
 <tr><td valign="top"><a href="#save_doc-3">save_doc/3</a></td><td>save a document  
 A document is a Json object like this one:.</td></tr>
@@ -108,8 +101,8 @@ A document is a Json object like this one:.</td></tr>
 <tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#uuids_url-1">uuids_url/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#version-0">version/0</a></td><td>Return the version of the application.</td></tr>
-<tr><td valign="top"><a href="#view-2">view/2</a></td><td> get view results from database.</td></tr>
-<tr><td valign="top"><a href="#view-3">view/3</a></td><td>get view results from database.</td></tr>
+<tr><td valign="top"><a href="#view-2">view/2</a></td><td>(<em>Deprecated</em>.)  get view results from database.</td></tr>
+<tr><td valign="top"><a href="#view-3">view/3</a></td><td>(<em>Deprecated</em>.) get view results from database.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -123,19 +116,21 @@ A document is a Json object like this one:.</td></tr>
 <div class="spec">
 <p><tt>all_docs(Db) -&gt; any()</tt></p>
 </div><p>Equivalent to <a href="#all_docs-2"><tt>all_docs(Db, [])</tt></a>.</p>
+<p><b>This function is deprecated:</b> use new api in <a href="couch_view.html"><code>couch_view</code></a>.</p>
 <p>get all documents from a CouchDB database.</p>
 
 <h3 class="function"><a name="all_docs-2">all_docs/2</a></h3>
 <div class="spec">
 <p><tt>all_docs(Db::<a href="#type-db">db()</a>, Options::list()) -&gt; {ok, View::<a href="#type-view">view()</a>} | {error, term()}</tt><br></p>
-</div><p>get all documents from a CouchDB database. It return a
-  #view{} record that you can use with couchbeam_view functions:
+</div><p><b>This function is deprecated:</b> use new api in <a href="couch_view.html"><code>couch_view</code></a>.</p>
+<p>get all documents from a CouchDB database. It return a
+  #view{} record that you can use with couchbeam_oldview functions:
   <ul>
-       <li><a href="couchbeam_view.html#count-1">couchbeam_view:count/1</a></li>
-       <li><a href="couchbeam_view.html#fetch-1">couchbeam_view:fetch/1</a></li>
-       <li><a href="couchbeam_view.html#first-1">couchbeam_view:first/1</a></li>
-       <li><a href="couchbeam_view.html#fold-1">couchbeam_view:fold/1</a></li>
-       <li><a href="couchbeam_view.html#foreach-1">couchbeam_view:foreach/1</a></li>
+       <li><a href="couchbeam_oldview.html#count-1">couchbeam_oldview:count/1</a></li>
+       <li><a href="couchbeam_oldview.html#fetch-1">couchbeam_oldview:fetch/1</a></li>
+       <li><a href="couchbeam_oldview.html#first-1">couchbeam_oldview:first/1</a></li>
+       <li><a href="couchbeam_oldview.html#fold-1">couchbeam_oldview:fold/1</a></li>
+       <li><a href="couchbeam_oldview.html#foreach-1">couchbeam_oldview:foreach/1</a></li>
   </ul>
  </p>
 
@@ -143,6 +138,7 @@ A document is a Json object like this one:.</td></tr>
 <div class="spec">
 <p><tt>changes(Db) -&gt; any()</tt></p>
 </div><p>Equivalent to <a href="#changes-2"><tt>changes(Db, [])</tt></a>.</p>
+<p><b>This function is deprecated:</b> Use <a href="couchbeam_changes.html#fetch-1"><code>couchbeam_changes:fetch/1</code></a> instead.</p>
 <p>get all changes. Do not use this function for longpolling,
   instead use  <pre>  changes_wait_once</pre> or continuous, use
   <pre>     wait_once</pre></p>
@@ -151,7 +147,8 @@ A document is a Json object like this one:.</td></tr>
 <div class="spec">
 <p><tt>changes(Db::<a href="#type-db">db()</a>, Options::<a href="#type-changesoptions">changesoptions()</a>) -&gt; term()</tt>
 <ul class="definitions"><li><tt><a name="type-changesoptions">changesoptions()</a> = [<a href="#type-changeoption">changeoption()</a>]</tt></li><li><tt><a name="type-changeoption">changeoption()</a> = {include_docs, string()} | {filter, string()} | {since, integer() | string()} | {heartbeat, string() | boolean()}</tt></li></ul></p>
-</div><p>get all changes. Do not use this function for longpolling,
+</div><p><b>This function is deprecated:</b> Use <a href="couchbeam_changes.html#fetch-2"><code>couchbeam_changes:fetch/2</code></a> instead.</p>
+<p>get all changes. Do not use this function for longpolling,
        instead use  <pre>  changes_wait_once</pre> or continuous, use
        <pre>          wait_once</pre>
   See <a href="http://wiki.apache.org/couchdb/HTTP_database_API#Changes" target="_top"><tt>http://wiki.apache.org/couchdb/HTTP_database_API#Changes</tt></a> for more informations.
@@ -161,12 +158,14 @@ A document is a Json object like this one:.</td></tr>
 <div class="spec">
 <p><tt>changes_wait(Db, ClientPid) -&gt; any()</tt></p>
 </div><p>Equivalent to <a href="#changes_wait-3"><tt>changes_wait(Db, ClientPid, [])</tt></a>.</p>
+<p><b>This function is deprecated:</b> Use <a href="couchbeam_changes.html#stream-2"><code>couchbeam_changes:stream/2</code></a>  instead.</p>
 <p>wait for continuous changes</p>
 
 <h3 class="function"><a name="changes_wait-3">changes_wait/3</a></h3>
 <div class="spec">
 <p><tt>changes_wait(Db::<a href="#type-db">db()</a>, Pid::pid(), Options::<a href="#type-changeoptions">changeoptions()</a>) -&gt; term()</tt><br></p>
-</div><p>wait for continuous changes to a Pid. Messages sent to the Pid
+</div><p><b>This function is deprecated:</b> Use <a href="couchbeam_changes.html#stream-3"><code>couchbeam_changes:stream/3</code></a> instead.</p>
+<p>wait for continuous changes to a Pid. Messages sent to the Pid
        will be of the form <code>{reference(), message()}</code>,
        where <code>message()</code> is one of:
        <dl>
@@ -184,12 +183,14 @@ A document is a Json object like this one:.</td></tr>
 <div class="spec">
 <p><tt>changes_wait_once(Db) -&gt; any()</tt></p>
 </div><p>Equivalent to <a href="#changes_wait_once-2"><tt>changes_wait_once(Db, [])</tt></a>.</p>
+<p><b>This function is deprecated:</b> Use <a href="couchbeam_changes.html#fetch-1"><code>couchbeam_changes:fetch/1</code></a>  instead.</p>
 <p>wait for longpoll changes</p>
 
 <h3 class="function"><a name="changes_wait_once-2">changes_wait_once/2</a></h3>
 <div class="spec">
 <p><tt>changes_wait_once(Db, Options) -&gt; any()</tt></p>
-</div><p>wait for longpoll changes</p>
+</div><p><b>This function is deprecated:</b> Use <a href="couchbeam_changes.html#fetch-2"><code>couchbeam_changes:fetch/2</code></a> instead.</p>
+<p>wait for longpoll changes</p>
 
 <h3 class="function"><a name="code_change-3">code_change/3</a></h3>
 <div class="spec">
@@ -394,11 +395,6 @@ A document is a Json object like this one:.</td></tr>
 <p><tt>make_url(Server, Path, Query) -&gt; any()</tt></p>
 </div>
 
-<h3 class="function"><a name="maybe_oauth_header-4">maybe_oauth_header/4</a></h3>
-<div class="spec">
-<p><tt>maybe_oauth_header(Method, Url, Headers, Options) -&gt; any()</tt></p>
-</div>
-
 <h3 class="function"><a name="open_db-2">open_db/2</a></h3>
 <div class="spec">
 <p><tt>open_db(Server, DbName) -&gt; any()</tt></p>
@@ -480,36 +476,6 @@ A document is a Json object like this one:.</td></tr>
   ex:
   <pre>  Options = {[{&lt;&lt;"create_target"&gt;&gt;, true}]},
   couchbeam:replicate(S, "testdb", "testdb2", Options).</pre></p>
-
-<h3 class="function"><a name="request-4">request/4</a></h3>
-<div class="spec">
-<p><tt>request(Method, Url, Expect, Options) -&gt; any()</tt></p>
-</div><p>send an ibrowse request</p>
-
-<h3 class="function"><a name="request-5">request/5</a></h3>
-<div class="spec">
-<p><tt>request(Method, Url, Expect, Options, Headers) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="request-6">request/6</a></h3>
-<div class="spec">
-<p><tt>request(Method, Url, Expect, Options, Headers, Body) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="request_stream-4">request_stream/4</a></h3>
-<div class="spec">
-<p><tt>request_stream(Pid, Method, Url, Options) -&gt; any()</tt></p>
-</div><p>stream an ibrowse request</p>
-
-<h3 class="function"><a name="request_stream-5">request_stream/5</a></h3>
-<div class="spec">
-<p><tt>request_stream(Pid, Method, Url, Options, Headers) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="request_stream-6">request_stream/6</a></h3>
-<div class="spec">
-<p><tt>request_stream(Pid, Method, Url, Options, Headers, Body) -&gt; any()</tt></p>
-</div>
 
 <h3 class="function"><a name="save_doc-2">save_doc/2</a></h3>
 <div class="spec">
@@ -646,22 +612,24 @@ A document is a Json object like this one:</p>
 <div class="spec">
 <p><tt>view(Db, ViewName) -&gt; any()</tt></p>
 </div><p>Equivalent to <a href="#view-3"><tt>view(Db, ViewName, [])</tt></a>.</p>
+<p><b>This function is deprecated:</b> use new api in <a href="couch_view.html"><code>couch_view</code></a>.</p>
 <p> get view results from database</p>
 
 <h3 class="function"><a name="view-3">view/3</a></h3>
 <div class="spec">
 <p><tt>view(Db::<a href="#type-db">db()</a>, ViewName::string(), Options::list()) -&gt; {ok, View::<a href="#type-view">view()</a>} | {error, term()}</tt><br></p>
-</div><p><p>get view results from database. viewname is generally  
+</div><p><b>This function is deprecated:</b> use new api in <a href="couch_view.html"><code>couch_view</code></a>.</p>
+<p><p>get view results from database. viewname is generally  
 a tupple like {DesignName::string(), ViewName::string()} or string  
 like "designname/viewname". It return a #view{} record  that you can use  
-with couchbeam_view functions:</p>
+with couchbeam_oldview functions:</p>
  
   <ul>
-       <li><a href="couchbeam_view.html#count-1">couchbeam_view:count/1</a></li>
-       <li><a href="couchbeam_view.html#fetch-1">couchbeam_view:fetch/1</a></li>
-       <li><a href="couchbeam_view.html#first-1">couchbeam_view:first/1</a></li>
-       <li><a href="couchbeam_view.html#fold-1">couchbeam_view:fold/1</a></li>
-       <li><a href="couchbeam_view.html#foreach-1">couchbeam_view:foreach/1</a></li>
+       <li><a href="couchbeam_oldview.html#count-1">couchbeam_oldview:count/1</a></li>
+       <li><a href="couchbeam_oldview.html#fetch-1">couchbeam_oldview:fetch/1</a></li>
+       <li><a href="couchbeam_oldview.html#first-1">couchbeam_oldview:first/1</a></li>
+       <li><a href="couchbeam_oldview.html#fold-1">couchbeam_oldview:fold/1</a></li>
+       <li><a href="couchbeam_oldview.html#foreach-1">couchbeam_oldview:foreach/1</a></li>
   </ul>
  
   <p>Options are CouchDB view parameters</p>
@@ -671,6 +639,6 @@ with couchbeam_view functions:</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, May 4 2011, 10:24:41.</i></p>
+<p><i>Generated by EDoc, Jul 5 2011, 17:11:39.</i></p>
 </body>
 </html>
