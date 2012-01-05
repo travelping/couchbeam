@@ -9,6 +9,7 @@
 -include("couchbeam.hrl").
 
 -export([stream/2, stream/3, stream/4,
+         stream_sync/2, stream_sync/3, stream_sync/4,
          fetch/1, fetch/2, fetch/3,
          count/1, count/2, count/3,
          first/1, first/2, first/3,
@@ -146,19 +147,23 @@ stream(Db, ViewName, Client) ->
 %% used to disctint all changes from this pid. ViewPid is the pid of
 %% the view loop process. Can be used to monitor it or kill it
 %% when needed.</p>
-stream(#db{options=IbrowseOpts}=Db, ViewName, ClientPid, Options) ->
-    make_view(Db, ViewName, Options, fun(Args, Url) ->
+stream(Db, ViewName, ClientPid, Options) when is_pid(ClientPid) ->
+    start_streaming(Db, ViewName, Options, fun (Params) ->
         StartRef = make_ref(),
-        UserFun = fun
-            (done) ->
-                ClientPid ! {row, StartRef, done};
-            ({error, Error}) ->
-                ClientPid ! {error, StartRef, Error};
-            (Row) ->
-                ClientPid ! {row, StartRef, Row}
-        end,
-        Params = {Args, Url, IbrowseOpts},
+        UserFun = fun (done) ->
+                          ClientPid ! {row, StartRef, done};
+                      ({error, Error}) ->
+                          ClientPid ! {error, StartRef, Error};
+                      (Row) ->
+                          ClientPid ! {row, StartRef, Row}
+                  end,
         ViewPid = spawn_link(couchbeam_view, view_loop, [UserFun, Params]),
+        {ViewPid, {ok, StartRef, ViewPid}}
+    end).
+
+start_streaming(#db{options=IbrowseOpts}=Db, ViewName, Options, StartFun) ->
+    make_view(Db, ViewName, Options, fun(Args, Url) ->
+        {ViewPid, StartFunReturn} = StartFun({Args, Url, IbrowseOpts}),
 
         %% if we send multiple keys, we do a Post
         Result = case Args#view_query_args.method of
@@ -170,15 +175,52 @@ stream(#db{options=IbrowseOpts}=Db, ViewName, ClientPid, Options) ->
                 couchbeam_httpc:request_stream({ViewPid, once}, post, Url,
                     IbrowseOpts, Headers, Body)
         end,
-
+    
         case Result of
             {ok, ReqId} ->
                 ViewPid ! {ibrowse_req_id, ReqId},
-                {ok, StartRef, ViewPid};
+                StartFunReturn;
             Error ->
                 Error
         end
     end).
+
+-spec stream_sync(Db::db(), Client::function()) -> ok | {error, term()}.
+%% @equiv stream_sync(Db, 'all_docs', Client, [])
+stream_sync(Db, Client) ->
+    stream_sync(Db, 'all_docs', Client, []).
+
+-spec stream_sync(Db::db(), ViewName::'all_docs' | {DesignName::string(),
+        ViewName::string()}, Client::function()) -> ok | {error, term()}.
+%% @equiv stream_sync(Db, ViewName, Client, [])
+stream_sync(Db, ViewName, ClientFun) ->
+    stream_sync(Db, ViewName, ClientFun, []).
+
+-spec stream_sync(Db::db(), ViewName::'all_docs' | {DesignName::string(),
+        ViewName::string()}, Client::fun(), Options::view_options()) 
+    -> ok | {error, term()}.
+stream_sync(Db, ViewName, ClientFun, Options) when is_function(ClientFun) ->
+    UserFun = fun
+        (done) ->
+            ClientFun({row, done});
+        ({error, Error}) ->
+            ClientFun({error, Error});
+        (Row) ->
+            ClientFun({row, Row})
+    end,
+    case start_streaming(Db, ViewName, Options, fun (Params) -> {self(), {ok, Params}} end) of
+        {ok, Params} ->
+            view_loop(UserFun, Params);
+        Error ->
+            receive
+                {ibrowse_async_headers, _, _, _} ->
+                    ok
+            after
+                0 ->
+                    ok
+            end,
+            Error
+    end.
 
 -spec count(Db::db()) -> integer() | {error, term()}.
 %% @equiv count(Db, 'all_docs', [])
@@ -304,13 +346,14 @@ foreach(Function, Db, ViewName) ->
 %% couchbeam_view:foreach(fun(Row) -> io:format("got row ~p~n", [Row]) end, Db, 'all_docs').
 %% '''
 foreach(Function, Db, ViewName, Options) ->
-    FunWrapper = fun(Row, _Acc) ->
-            Function(Row),
-            ok
-    end,
-    fold(FunWrapper, ok, Db, ViewName, Options).
-
-
+    FunWrapper = fun({row, done}) ->
+                        ok;
+                    ({row, Row}) ->
+                        Function(Row);
+                    ({error, _Error}) ->
+                        ok
+                 end,
+    stream_sync(Db, ViewName, FunWrapper, Options).
 %% ----------------------------------
 %% utilities functions
 %% ----------------------------------
