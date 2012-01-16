@@ -175,7 +175,7 @@ start_streaming(#db{options=IbrowseOpts}=Db, ViewName, Options, StartFun) ->
                 couchbeam_httpc:request_stream({ViewPid, once}, post, Url,
                     IbrowseOpts, Headers, Body)
         end,
-    
+
         case Result of
             {ok, ReqId} ->
                 ViewPid ! {ibrowse_req_id, ReqId},
@@ -197,7 +197,7 @@ stream_sync(Db, ViewName, ClientFun) ->
     stream_sync(Db, ViewName, ClientFun, []).
 
 -spec stream_sync(Db::db(), ViewName::'all_docs' | {DesignName::string(),
-        ViewName::string()}, Client::fun(), Options::view_options()) 
+        ViewName::string()}, Client::fun(), Options::view_options())
     -> ok | {error, term()}.
 stream_sync(Db, ViewName, ClientFun, Options) when is_function(ClientFun) ->
     UserFun = fun
@@ -375,10 +375,10 @@ parse_view_options([{end_docid, Value}|Rest], #view_query_args{options=Opts}=Arg
     Opts1 = [{"end_docid", Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{start_key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"start_key", ejson:encode(Value)}|Opts],
+    Opts1 = [{"startkey", ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{end_key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"end_key", ejson:encode(Value)}|Opts],
+    Opts1 = [{"endkey", ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{limit, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{"limit", Value}|Opts],
