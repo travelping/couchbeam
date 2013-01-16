@@ -13,7 +13,7 @@
 
 -behavior(gen_server).
 
--export([start_link/4]).
+-export([start_link/4, start_link/5]).
 -export([init/1,
          handle_call/3,
          handle_cast/2,
@@ -59,6 +59,21 @@ cast(Dest, Request) ->
 %%                  {heartbeat, string()|boolean()}
 start_link(Module, Db, Options, InitArgs) ->
     gen_server:start_link(?MODULE, [Module, Db, Options, InitArgs], []).
+
+%% @doc create a gen_changes process as part of a supervision tree.
+%% The function should be called, directly or indirectly, by the supervisor.
+%% @spec start_link(ServerName, Module, Db::db(), Options::changesoptions(),
+%%                  InitArgs::list()) -> term()
+%%       ServerName = {local,Name} | {global,GlobalName} | {via,Module,ViaName}
+%%        Name = atom()
+%%        GlobalName = ViaName = term()
+%%       changesoptions() = [changeoption()]
+%%       changeoption() = {include_docs, string()} |
+%%                  {filter, string()} |
+%%                  {since, integer()|string()} |
+%%                  {heartbeat, string()|boolean()}
+start_link(ServerName, Module, Db, Options, InitArgs) ->
+    gen_server:start_link(ServerName, ?MODULE, [Module, Db, Options, InitArgs], []).
 
 init([Module, Db, Options, InitArgs]) ->
     case Module:init(InitArgs) of
