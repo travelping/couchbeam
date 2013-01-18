@@ -13,7 +13,7 @@
 
 -behavior(gen_server).
 
--export([start_link/4, start_link/5]).
+-export([start_link/4, start_link/5, start/4, start/5]).
 -export([init/1,
          handle_call/3,
          handle_cast/2,
@@ -52,16 +52,6 @@ cast(Dest, Request) ->
 %% The function should be called, directly or indirectly, by the supervisor.
 %% @spec start_link(Module, Db::db(), Options::changesoptions(),
 %%                  InitArgs::list()) -> term()
-%%       changesoptions() = [changeoption()]
-%%       changeoption() = {include_docs, string()} |
-%%                  {filter, string()} |
-%%                  {since, integer()|string()} |
-%%                  {heartbeat, string()|boolean()}
-start_link(Module, Db, Options, InitArgs) ->
-    gen_server:start_link(?MODULE, [Module, Db, Options, InitArgs], []).
-
-%% @doc create a gen_changes process as part of a supervision tree.
-%% The function should be called, directly or indirectly, by the supervisor.
 %% @spec start_link(ServerName, Module, Db::db(), Options::changesoptions(),
 %%                  InitArgs::list()) -> term()
 %%       ServerName = {local,Name} | {global,GlobalName} | {via,Module,ViaName}
@@ -72,7 +62,18 @@ start_link(Module, Db, Options, InitArgs) ->
 %%                  {filter, string()} |
 %%                  {since, integer()|string()} |
 %%                  {heartbeat, string()|boolean()}
+start_link(Module, Db, Options, InitArgs) ->
+    gen_server:start_link(?MODULE, [Module, Db, Options, InitArgs], []).
 start_link(ServerName, Module, Db, Options, InitArgs) ->
+    gen_server:start_link(ServerName, ?MODULE, [Module, Db, Options, InitArgs], []).
+
+%% @doc Creates a stand-alone gen_changes process, i.e. a gen_server
+%% which is not part of a supervision tree and thus has no supervisor.
+%%
+%% See start_link/3,4 for a description of arguments and return values.
+start(Module, Db, Options, InitArgs) ->
+    gen_server:start_link(?MODULE, [Module, Db, Options, InitArgs], []).
+start(ServerName, Module, Db, Options, InitArgs) ->
     gen_server:start_link(ServerName, ?MODULE, [Module, Db, Options, InitArgs], []).
 
 init([Module, Db, Options, InitArgs]) ->
