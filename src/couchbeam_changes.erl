@@ -6,7 +6,7 @@
 -module(couchbeam_changes).
 
 -include("couchbeam.hrl").
--include_lib("ibrowse/src/ibrowse.hrl").
+-include_lib("ibrowse/include/ibrowse.hrl").
 
 -export([wait_for_change/1, continuous_acceptor/2]).
 
