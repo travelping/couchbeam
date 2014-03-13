@@ -11,7 +11,7 @@
     couchbeam_sup
   ]},
   {applications, [kernel, stdlib, crypto, public_key, ssl, sasl,
-        ibrowse]},
+        ibrowse, oauth, ejson, mochiweb]},
   {env, []},
   {mod, { couchbeam_app, []}}
  ]
