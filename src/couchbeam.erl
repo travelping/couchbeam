@@ -465,7 +465,7 @@ save_docs(#db{server=Server, options=IbrowseOpts}=Db, Docs, Options) ->
         end,
     Url = make_url(Server, [db_url(Db), "/", "_bulk_docs"], Options2),
     Headers = [{"Content-Type", "application/json"}],
-    case db_request(post, Url, ["201"], IbrowseOpts, Headers, Body) of
+    case db_request(post, Url, ["201", "202"], IbrowseOpts, Headers, Body) of
         {ok, _, _, RespBody} ->
             {ok, ejson:decode(RespBody)};
         Error ->
